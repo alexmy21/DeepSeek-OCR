@@ -35,7 +35,7 @@ similar_docs = ocr.find_similar("machine learning research papers")
 
 **Yes to both questions!** This is exactly how open source contribution works. Your forked repository is the perfect place to develop and share your HLLSet Cortex implementation.
 
-## ✅ **Using Your Fork for Development**
+## ✅ **Using Fork for Development**
 
 ### **1. Development Workflow**
 
@@ -56,7 +56,7 @@ git commit -m "feat: Add HLLSet Cortex shadow indexer for semantic document retr
 git push origin feature/hllset-cortex-indexer
 ```
 
-### **2. Repository Structure for Your Fork**
+### **2. Repository Structure**
 
 ```
 DeepSeek-OCR/  (your fork)
@@ -81,7 +81,7 @@ DeepSeek-OCR/  (your fork)
     └── semantic_indexing.md
 ```
 
-## 🚀 **Immediate Actions for Your Fork**
+## 🚀 **Immediate Actions**
 
 ### **1. Add HLLSet Core Implementation**
 
@@ -296,6 +296,6 @@ git clone https://github.com/alexmy21/DeepSeek-OCR-HLLSet-Demo
 3. **Share progress** early to get feedback
 4. **Iterate based on community response**
 
-Your fork is the perfect sandbox to develop this innovative feature! The open source model encourages exactly this kind of experimentation and contribution.
+This fork is the perfect sandbox to develop this innovative feature! The open source model encourages exactly this kind of experimentation and contribution.
 
 **Go ahead and start coding in your forked repository!** This is how most major open source features begin.
