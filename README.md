@@ -364,7 +364,7 @@ This work bridges:
 ## References
 
 1. <https://blocks.diy/website/home>
-2. <https://www.msn.com/en-us/money/companies/amd-quietly-cracks-open-quantum-opportunity/ar-AA1PdFjn?ocid=hpmsn&cvid=65e4421733094cd7e26cbada26f4f90a&ei=17>
+2. FPGA in Quantum Chips <https://www.msn.com/en-us/money/companies/amd-quietly-cracks-open-quantum-opportunity/ar-AA1PdFjn?ocid=hpmsn&cvid=65e4421733094cd7e26cbada26f4f90a&ei=17>
 
 ---
 
