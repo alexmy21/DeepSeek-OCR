@@ -361,6 +361,10 @@ This work bridges:
 - **Entanglement graphs** for knowledge representation
 - **Shadow indexing** for non-intrusive system enhancement
 
+## References
+
+1. <https://blocks.diy/website/home>
+
 ---
 
 **HLLSet Cortex transforms DeepSeek-OCR from a document processor into a self-evolving semantic intelligence system.** Each interaction makes it smarter, creating a living knowledge graph that grows with your usage.
