@@ -69,15 +69,35 @@ pip install ./hllset_extension
 ### **Core Components**
 
 ```bash
-deepseek_ocr/
-├── ocr_engine.py          # Original DeepSeek-OCR
-├── hllset/                # Shadow Indexer Extension
-│   ├── core.py            # Python wrapper for HLLSets.jl
-│   ├── cortex.py          # Entanglement Graph management
-│   ├── interceptor.py     # Data exchange interception
-│   └── layer_manager.py   # Cortex layer evolution
-└── utils/
-    └── tokenizer.py       # Unified tokenization
+DeepSeek-OCR/
+├── deepseek_ocr/              # Main package
+│   ├── ocr.py                 # Original OCR interface (currently stub)
+│   ├── hllset/                # HLLSet Cortex implementation
+│   │   ├── core.py            # HLLSet class with similarity algorithms
+│   │   ├── HLLSets.jl         # HLLSet class with similarity algorithms in Julia from SGS.ai
+│   │   ├── HLLSets.py         # Wrapper of HLLSets.jl in Python
+│   │   ├── indexer.py         # Shadow indexer (document index + morphisms)
+│   │   ├── integration.py     # OCRWithHLLIndexing wrapper
+│   │   ├── cortex.py          # Cortex category implementation
+│   │   ├── fpga_optimized.py  # Hardware-accelerated version
+│   │   └── memory_efficient.py # Memory optimizations
+│   └── utils/
+│       ├── semantic_tokenizer.py
+│       └── memory_monitor.py
+├── DeepSeek-OCR-master/       # Original upstream code
+│   └── DeepSeek-OCR-vllm/     # vLLM-based implementation
+│       ├── deepseek_ocr.py    # Main model (DeepseekOCRForCausalLM)
+│       ├── config.py          # OCR configuration
+│       ├── run_dpsk_ocr_image.py  # Image processing script
+│       ├── run_dpsk_ocr_pdf.py    # PDF processing script
+│       └── deepencoder/       # Vision encoders (SAM, CLIP)
+├── examples/                  # Demonstration scripts
+│   ├── demo_mock_ocr.py       # Mock OCR with HLLSet demo
+│   ├── semantic_retrieval.py
+│   ├── hllset_ocr_integration.py
+│   └── advanced_retrieval.py
+└── tests/
+    └── test_hllset_integration.py
 ```
 
 ### **Data Flow**
