@@ -383,8 +383,10 @@ This work bridges:
 
 ## References
 
-1. <https://blocks.diy/website/home>
-2. FPGA in Quantum Chips <https://www.msn.com/en-us/money/companies/amd-quietly-cracks-open-quantum-opportunity/ar-AA1PdFjn?ocid=hpmsn&cvid=65e4421733094cd7e26cbada26f4f90a&ei=17>
+1. <https://github.com/vllm-project/vllm>
+2. <https://blocks.diy/website/home>
+3. FPGA in Quantum Chips <https://www.msn.com/en-us/money/companies/amd-quietly-cracks-open-quantum-opportunity/ar-AA1PdFjn?ocid=hpmsn&cvid=65e4421733094cd7e26cbada26f4f90a&ei=17>
+4. BI Explorer, BIE-1 <https://ysln.ycwb.com/content/2025-10/25/content_53753735.html>
 
 ---
 
