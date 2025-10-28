@@ -47,7 +47,7 @@ module HllSets
     using SHA
     using JSON3
 
-    export HllSet, add!, count, union, intersect, diff, isequal, isempty, id, delta, getbin, getzeros, maxidx, match, cosine, dump, restore, to_binary_tensor, flatten_tensor, tensor_to_string, string_to_tensor, binary_tensor_to_hllset, set_xor, set_comp, set_added, set_deleted
+    export HllSet, add, add!, count, union, intersect, diff, isequal, isempty, id, delta, getbin, getzeros, maxidx, match, cosine, dump, restore, to_binary_tensor, flatten_tensor, tensor_to_string, string_to_tensor, binary_tensor_to_hllset, set_xor, set_comp, set_added, set_deleted
 
     struct HllSet{P}
         counts::Vector{UInt32}

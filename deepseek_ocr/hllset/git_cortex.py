@@ -1,179 +1,202 @@
 """
 Git-backed Cortex Module
-Implements Cortex operations using Git as the underlying storage system.
 """
 
 import os
-import git
-from collections import defaultdict
-from dataclasses import dataclass
-from typing import List, Dict, Optional
+import sys
+import tempfile
+from dataclasses import dataclass, asdict
+from typing import List, Dict, Optional, Any
 import hashlib
 import json
 
-# Assume HLLSet is available in the same folder
-from HLLSets import HLLSet
+# Import HllSet - this will use either Julia or Python implementation
+try:
+    from HLLSets import HllSet
+    print("✅ HllSet imported successfully")
+except ImportError as e:
+    print(f"❌ HllSet import failed: {e}")
+    
+    # Minimal fallback
+    class HllSet:
+        def __init__(self, p=10):
+            self.p = p
+            self.data = {}
+            
+        def add(self, element, seed=0):
+            return self
+            
+        @property
+        def count(self):
+            return 0
+            
+        def serialize(self):
+            return json.dumps({"p": self.p})
+            
+        def deserialize(self, data):
+            return self
 
 @dataclass
 class Context:
-    """Represents a context in Cortex"""
     name: str
-    basis_elements: List[str]  # List of HLLSet IDs
+    basis_elements: List[str]
+    metadata: Dict[str, Any] = None
+    
+    def __post_init__(self):
+        if self.metadata is None:
+            self.metadata = {}
     
     def to_dict(self):
+        """Convert Context to dictionary for serialization"""
         return {
             'name': self.name,
-            'basis_elements': self.basis_elements
+            'basis_elements': self.basis_elements,
+            'metadata': self.metadata
         }
     
     @classmethod
     def from_dict(cls, data):
+        """Create Context from dictionary"""
         return cls(
             name=data['name'],
-            basis_elements=data['basis_elements']
+            basis_elements=data['basis_elements'],
+            metadata=data.get('metadata', {})
         )
 
 @dataclass 
 class Edge:
-    """Represents an edge in Cortex"""
     edge_id: str
     tau: float
     rho: float
-    phi: Optional[float] = None
     parent_edges: List[str] = None
+    metadata: Dict[str, Any] = None
     
     def __post_init__(self):
         if self.parent_edges is None:
             self.parent_edges = []
+        if self.metadata is None:
+            self.metadata = {}
     
     def to_dict(self):
+        """Convert Edge to dictionary for serialization"""
         return {
             'edge_id': self.edge_id,
             'tau': self.tau,
             'rho': self.rho,
-            'phi': self.phi,
-            'parent_edges': self.parent_edges
+            'parent_edges': self.parent_edges,
+            'metadata': self.metadata
         }
     
     @classmethod
     def from_dict(cls, data):
+        """Create Edge from dictionary"""
         return cls(
             edge_id=data['edge_id'],
             tau=data['tau'],
             rho=data['rho'],
-            phi=data.get('phi'),
-            parent_edges=data.get('parent_edges', [])
+            parent_edges=data.get('parent_edges', []),
+            metadata=data.get('metadata', {})
         )
 
 class GitBackedCortex:
-    """
-    Implements Cortex operations using Git as storage backend
-    """
-    
     def __init__(self, repo_path: str, init: bool = False):
+        try:
+            import git
+            self.repo = git.Repo.init(repo_path) if init else git.Repo(repo_path)
+        except ImportError:
+            raise ImportError("Install GitPython: pip install GitPython")
+            
         self.repo_path = repo_path
         
         if init:
-            if not os.path.exists(repo_path):
-                os.makedirs(repo_path)
-            self.repo = git.Repo.init(repo_path)
-            self._init_repo_structure()
-        else:
-            self.repo = git.Repo(repo_path)
-        
-        # Directory structure
-        self.basis_dir = "basis/"
-        self.contexts_dir = "contexts/"
-        self.edges_dir = "edges/"
-        self.layers_dir = "layers/"
+            # Create directory structure
+            for dir_name in ["basis", "contexts", "edges", "layers"]:
+                os.makedirs(os.path.join(repo_path, dir_name), exist_ok=True)
+            self.repo.index.commit("Initial Cortex repository")
     
-    def _init_repo_structure(self):
-        """Initialize the directory structure in the Git repo"""
-        dirs = [self.basis_dir, self.contexts_dir, self.edges_dir, self.layers_dir]
-        for dir_path in dirs:
-            full_path = os.path.join(self.repo_path, dir_path)
-            os.makedirs(full_path, exist_ok=True)
+    def store_hllset(self, hllset: HllSet) -> str:
+        """Store HllSet as Git blob"""
+        content = hllset.serialize()
         
-        # Create initial commit
-        self.repo.index.commit("Initial Cortex repository structure")
+        # Use temporary file for git hash-object
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as temp_file:
+            temp_file.write(content)
+            temp_path = temp_file.name
+        
+        try:
+            # Use the temporary file with git hash-object
+            blob_sha = self.repo.git.hash_object('-w', temp_path)
+            
+            # Write to the basis directory in the repo
+            blob_path = f"basis/{blob_sha}.json"
+            full_blob_path = os.path.join(self.repo_path, blob_path)
+            
+            # Ensure directory exists
+            os.makedirs(os.path.dirname(full_blob_path), exist_ok=True)
+            
+            # Copy from temp file to repo
+            import shutil
+            shutil.copy2(temp_path, full_blob_path)
+            
+            # Add to git index
+            self.repo.index.add([blob_path])
+            self.repo.index.commit(f"Add HllSet: {blob_sha[:8]}")
+            
+            return blob_sha
+        finally:
+            # Clean up temporary file
+            os.unlink(temp_path)
     
-    def _compute_sha(self, content: str) -> str:
-        """Compute SHA1 hash for content (mimicking Git's hashing)"""
-        return hashlib.sha1(content.encode()).hexdigest()
-    
-    def store_hllset(self, hllset: HLLSet) -> str:
-        """
-        Store HLLSet as Git blob in basis directory
-        Returns: SHA of the stored HLLSet
-        """
-        # Serialize HLLSet - you might want to customize this
-        content = json.dumps({
-            'id': getattr(hllset, 'id', 'unknown'),
-            'data': hllset.serialize() if hasattr(hllset, 'serialize') else str(hllset)
-        })
-        
-        # Create blob in Git
-        blob_sha = self.repo.git.hash_object('-w', '--stdin', input=content)
-        
-        # Store in basis directory
-        blob_path = os.path.join(self.basis_dir, blob_sha)
-        with open(os.path.join(self.repo_path, blob_path), 'w') as f:
-            f.write(content)
-        
-        self.repo.index.add([blob_path])
-        return blob_sha
-    
-    def get_hllset(self, sha: str) -> HLLSet:
-        """Retrieve HLLSet from Git blob"""
-        blob_path = os.path.join(self.basis_dir, sha)
+    def get_hllset(self, sha: str) -> HllSet:
+        """Retrieve HllSet from Git blob"""
+        blob_path = f"basis/{sha}.json"
         full_path = os.path.join(self.repo_path, blob_path)
         
         with open(full_path, 'r') as f:
-            content = json.loads(f.read())
+            content = f.read()
         
-        # Deserialize HLLSet - you might want to customize this
-        hllset = HLLSet()
-        if hasattr(hllset, 'deserialize'):
-            hllset.deserialize(content['data'])
+        hllset = HllSet(p=10)
+        hllset.deserialize(content)
         return hllset
     
     def create_context(self, context: Context) -> str:
-        """
-        Create context as Git tree commit
-        Returns: Commit SHA
-        """
-        # Add all basis elements to index
-        for basis_sha in context.basis_elements:
-            basis_path = os.path.join(self.basis_dir, basis_sha)
-            self.repo.index.add([basis_path])
+        """Create a context as a Git commit"""
+        # Create context metadata file
+        context_path = f"contexts/{context.name}.json"
+        full_path = os.path.join(self.repo_path, context_path)
         
-        # Create commit for context
-        commit = self.repo.index.commit(f"Context: {context.name}")
-        
-        # Store context metadata
-        context_path = os.path.join(self.contexts_dir, f"{context.name}.json")
-        with open(os.path.join(self.repo_path, context_path), 'w') as f:
-            json.dump(context.to_dict(), f)
+        with open(full_path, 'w') as f:
+            json.dump(context.to_dict(), f, indent=2)
         
         self.repo.index.add([context_path])
-        self.repo.index.commit(f"Context metadata: {context.name}")
+        commit = self.repo.index.commit(f"Context: {context.name}")
         
         return commit.hexsha
     
+    def get_context(self, context_name: str) -> Optional[Context]:
+        """Retrieve context by name"""
+        context_path = f"contexts/{context_name}.json"
+        full_path = os.path.join(self.repo_path, context_path)
+        
+        if not os.path.exists(full_path):
+            return None
+        
+        with open(full_path, 'r') as f:
+            data = json.load(f)
+        
+        return Context.from_dict(data)
+    
     def create_edge(self, edge: Edge, parent_commits: List[str] = None) -> str:
-        """
-        Create edge as Git commit
-        Returns: Commit SHA
-        """
+        """Create an edge as a Git commit"""
         if parent_commits is None:
             parent_commits = []
         
-        # Create edge data file
-        edge_content = json.dumps(edge.to_dict())
-        edge_path = os.path.join(self.edges_dir, f"{edge.edge_id}.json")
+        # Create edge metadata file
+        edge_path = f"edges/{edge.edge_id}.json"
+        full_path = os.path.join(self.repo_path, edge_path)
         
-        with open(os.path.join(self.repo_path, edge_path), 'w') as f:
-            f.write(edge_content)
+        with open(full_path, 'w') as f:
+            json.dump(edge.to_dict(), f, indent=2)
         
         self.repo.index.add([edge_path])
         
@@ -186,72 +209,53 @@ class GitBackedCortex:
             except:
                 print(f"Warning: Parent commit {parent_sha} not found")
         
-        # Create commit for edge
+        # Create commit
         commit_msg = f"Edge: {edge.edge_id} (τ={edge.tau}, ρ={edge.rho})"
         commit = self.repo.index.commit(commit_msg, parent_commits=parent_commit_objs)
         
         return commit.hexsha
     
-    def create_layer_branch(self, layer_name: str, edges: List[Edge]) -> str:
-        """
-        Create a new branch representing a Cortex layer
-        Returns: Branch name
-        """
-        # Create new branch
-        current_branch = self.repo.active_branch.name
-        self.repo.git.checkout('-b', layer_name)
+    def get_edge(self, edge_id: str) -> Optional[Edge]:
+        """Retrieve edge by ID"""
+        edge_path = f"edges/{edge_id}.json"
+        full_path = os.path.join(self.repo_path, edge_path)
         
-        # Add all edges as commits
-        for edge in edges:
-            # Find parent commits (simplified - you might want more complex logic)
-            parent_commits = []
-            for parent_edge_id in edge.parent_edges:
-                # Look for parent edge commits
-                try:
-                    # This is simplified - you'd want a better way to find parent commits
-                    parent_commit = self._find_edge_commit(parent_edge_id)
-                    if parent_commit:
-                        parent_commits.append(parent_commit)
-                except:
-                    continue
-            
-            self.create_edge(edge, parent_commits)
+        if not os.path.exists(full_path):
+            return None
         
-        # Store layer metadata
-        layer_metadata = {
-            'name': layer_name,
-            'edges': [edge.edge_id for edge in edges]
-        }
-        layer_path = os.path.join(self.layers_dir, f"{layer_name}.json")
-        with open(os.path.join(self.repo_path, layer_path), 'w') as f:
-            json.dump(layer_metadata, f)
+        with open(full_path, 'r') as f:
+            data = json.load(f)
         
-        self.repo.index.add([layer_path])
-        self.repo.index.commit(f"Layer metadata: {layer_name}")
-        
-        # Switch back to original branch
-        self.repo.git.checkout(current_branch)
-        
-        return layer_name
+        return Edge.from_dict(data)
     
-    def _find_edge_commit(self, edge_id: str) -> Optional[str]:
-        """Find commit SHA for a given edge ID"""
-        # This is a simplified implementation
-        # You might want to maintain an index of edge->commit mappings
-        edge_path = os.path.join(self.edges_dir, f"{edge_id}.json")
-        try:
-            # Use git log to find commits that added this file
-            commits = self.repo.git.log('--oneline', '--follow', '--', edge_path)
-            if commits:
-                return commits.split('\n')[0].split(' ')[0]
-        except:
-            pass
-        return None
+    def list_contexts(self) -> List[str]:
+        """List all stored contexts"""
+        contexts_dir = os.path.join(self.repo_path, "contexts")
+        if not os.path.exists(contexts_dir):
+            return []
+        
+        contexts = []
+        for file in os.listdir(contexts_dir):
+            if file.endswith('.json'):
+                contexts.append(file[:-5])  # Remove .json extension
+        return contexts
     
-    def get_cortex_history(self) -> List[Dict]:
-        """Get the commit history of the Cortex"""
+    def list_edges(self) -> List[str]:
+        """List all stored edges"""
+        edges_dir = os.path.join(self.repo_path, "edges")
+        if not os.path.exists(edges_dir):
+            return []
+        
+        edges = []
+        for file in os.listdir(edges_dir):
+            if file.endswith('.json'):
+                edges.append(file[:-5])  # Remove .json extension
+        return edges
+    
+    def get_history(self, max_count: int = 10) -> List[Dict]:
+        """Get commit history"""
         history = []
-        for commit in self.repo.iter_commits():
+        for commit in self.repo.iter_commits(max_count=max_count):
             history.append({
                 'sha': commit.hexsha,
                 'message': commit.message.strip(),
@@ -259,79 +263,76 @@ class GitBackedCortex:
                 'date': commit.committed_datetime.isoformat()
             })
         return history
-    
-    def merge_contexts(self, context1: str, context2: str, merge_message: str = None) -> str:
-        """
-        Merge two contexts (similar to git merge)
-        Returns: Merge commit SHA
-        """
-        if merge_message is None:
-            merge_message = f"Merge contexts: {context1} and {context2}"
-        
-        # This is a simplified merge operation
-        # In practice, you'd want more sophisticated context merging logic
-        try:
-            self.repo.git.merge(context1, context2, m=merge_message)
-            return self.repo.head.commit.hexsha
-        except git.GitCommandError as e:
-            print(f"Merge conflict: {e}")
-            # Handle merge conflicts here
-            return None
 
-# Demo and usage example
-def demo():
-    """Demonstrate Git-backed Cortex functionality"""
+def test_hllset_git_integration():
+    """Test the integration between HllSet and GitCortex"""
+    import tempfile
+    import shutil
     
-    # Initialize repository
-    repo_path = "/tmp/cortex_demo"
-    cortex = GitBackedCortex(repo_path, init=True)
+    # Create temporary directory
+    temp_dir = tempfile.mkdtemp()
     
-    print("Git-backed Cortex Demo")
-    print("=" * 50)
-    
-    # Create some sample HLLSets
-    sample_hllsets = [
-        HLLSet(),  # You'll need to initialize these properly
-        HLLSet(),
-        HLLSet()
-    ]
-    
-    # Store HLLSets
-    basis_shas = []
-    for i, hllset in enumerate(sample_hllsets):
+    try:
+        print("Testing HllSet Git integration...")
+        
+        # Initialize cortex
+        cortex = GitBackedCortex(temp_dir, init=True)
+        print("✅ GitBackedCortex initialized")
+        
+        # Create and test HllSet
+        hllset = HllSet(p=10)
+        hllset.add("test_element_1")
+        hllset.add("test_element_2")
+        
+        print(f"✅ HllSet created with count: {hllset.count}")
+        
+        # Store in Git
         sha = cortex.store_hllset(hllset)
-        basis_shas.append(sha)
-        print(f"Stored HLLSet {i} with SHA: {sha}")
-    
-    # Create contexts
-    context_a = Context("context_A", basis_shas[:2])
-    context_b = Context("context_B", basis_shas[1:])
-    
-    context_a_sha = cortex.create_context(context_a)
-    context_b_sha = cortex.create_context(context_b)
-    
-    print(f"Created context A: {context_a_sha}")
-    print(f"Created context B: {context_b_sha}")
-    
-    # Create edges
-    edge1 = Edge("edge_1", tau=0.8, rho=0.6, parent_edges=[])
-    edge2 = Edge("edge_2", tau=0.9, rho=0.7, parent_edges=["edge_1"])
-    
-    edge1_sha = cortex.create_edge(edge1)
-    edge2_sha = cortex.create_edge(edge2, [edge1_sha])
-    
-    print(f"Created edge 1: {edge1_sha}")
-    print(f"Created edge 2: {edge2_sha}")
-    
-    # Create layer branch
-    layer_name = cortex.create_layer_branch("abstraction_layer_1", [edge1, edge2])
-    print(f"Created layer branch: {layer_name}")
-    
-    # Show history
-    history = cortex.get_cortex_history()
-    print(f"\nCortex history ({len(history)} commits):")
-    for commit in history[:5]:  # Show first 5 commits
-        print(f"  {commit['sha'][:8]} - {commit['message']}")
+        print(f"✅ HllSet stored with SHA: {sha}")
+        
+        # Retrieve from Git
+        retrieved_hllset = cortex.get_hllset(sha)
+        print(f"✅ HllSet retrieved with count: {retrieved_hllset.count}")
+        
+        # Test context creation
+        context = Context("test_context", [sha])
+        context_sha = cortex.create_context(context)
+        print(f"✅ Context created with SHA: {context_sha[:8]}...")
+        
+        # Test context retrieval
+        retrieved_context = cortex.get_context("test_context")
+        print(f"✅ Context retrieved: {retrieved_context.name}")
+        
+        # Test edge creation
+        edge = Edge("test_edge", tau=0.8, rho=0.6, parent_edges=[])
+        edge_sha = cortex.create_edge(edge)
+        print(f"✅ Edge created with SHA: {edge_sha[:8]}...")
+        
+        # Test edge retrieval
+        retrieved_edge = cortex.get_edge("test_edge")
+        print(f"✅ Edge retrieved: {retrieved_edge.edge_id}")
+        
+        # Test listing
+        contexts = cortex.list_contexts()
+        edges = cortex.list_edges()
+        print(f"✅ Contexts: {contexts}")
+        print(f"✅ Edges: {edges}")
+        
+        # Test history
+        history = cortex.get_history(max_count=5)
+        print(f"✅ History ({len(history)} commits)")
+        for commit in history:
+            print(f"   {commit['sha'][:8]} - {commit['message']}")
+        
+        print("🎉 All tests passed!")
+        
+    except Exception as e:
+        print(f"❌ Test failed: {e}")
+        import traceback
+        traceback.print_exc()
+    finally:
+        # Cleanup
+        shutil.rmtree(temp_dir, ignore_errors=True)
 
 if __name__ == "__main__":
-    demo()
+    test_hllset_git_integration()

@@ -16,5 +16,6 @@ setup(
         "tqdm>=4.66.0",
         "gputil>=1.4.0",
         "psutil>=5.9.0",
+        "GitPython>=3.1.30",
     ],
 )
