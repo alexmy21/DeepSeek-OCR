@@ -80,3 +80,8 @@ Merge operations for combining contexts
 Pythonic API that mirrors standard Git operations
 
 The module accepts HLLSets as input and provides all the main Git operations through a Python interface, exactly as specified in your concept document. You can later merge this into your hllset-cortex-indexer branch when ready.
+
+## References
+
+1. <https://github.com/alexmy21/CRoaring>
+2. <https://github.com/alexmy21/RedisGraph>
