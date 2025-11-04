@@ -85,3 +85,5 @@ The module accepts HLLSets as input and provides all the main Git operations thr
 
 1. <https://github.com/alexmy21/CRoaring>
 2. <https://github.com/alexmy21/RedisGraph>
+3. <https://github.com/yichuan-w/LEANN?tab=readme-ov-file>
+4. <https://www.linkedin.com/in/dr-dinara-rakhimbaeva-2482b112/>
