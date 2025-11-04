@@ -2,180 +2,391 @@
 <!-- markdownlint-disable html -->
 <!-- markdownlint-disable no-duplicate-header -->
 
-
 <div align="center">
-  <img src="assets/logo.svg" width="60%" alt="DeepSeek AI" />
+  <img src="assets/1112548.png" width="30%" alt="SGS.ai" />
 </div>
 
+# HLLSet Cortex: Semantic Intelligence Layer for DeepSeek-OCR
 
-<hr>
-<div align="center">
-  <a href="https://www.deepseek.com/" target="_blank">
-    <img alt="Homepage" src="assets/badge.svg" />
-  </a>
-  <a href="https://huggingface.co/deepseek-ai/DeepSeek-OCR" target="_blank">
-    <img alt="Hugging Face" src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-DeepSeek%20AI-ffc107?color=ffc107&logoColor=white" />
-  </a>
+## 🧠 Overview
 
-</div>
+HLLSet Cortex is a **shadow indexing system** that adds semantic intelligence to DeepSeek-OCR by intercepting and enhancing all data exchange between users and the OCR engine. It transforms document processing into a **self-evolving knowledge graph** using HyperLogLog-based semantic fingerprints.
 
-<div align="center">
+## 🎯 Core Strategy
 
-  <a href="https://discord.gg/Tc7c45Zzu5" target="_blank">
-    <img alt="Discord" src="https://img.shields.io/badge/Discord-DeepSeek%20AI-7289da?logo=discord&logoColor=white&color=7289da" />
-  </a>
-  <a href="https://twitter.com/deepseek_ai" target="_blank">
-    <img alt="Twitter Follow" src="https://img.shields.io/badge/Twitter-deepseek_ai-white?logo=x&logoColor=white" />
-  </a>
+### **Interception & Enhancement Pipeline**
 
-</div>
+```
+User Prompt/Files → HLLSet Cortex → Enhanced Query → DeepSeek-OCR → Response → HLLSet Integration → Cortex Evolution
+```
 
+### **Key Principles**
 
+1. **Everything becomes HLLSets**: All prompts, files, and OCR responses are converted to semantic fingerprints
+2. **Cortex grows organically**: Each interaction creates new layers and relationships
+3. **Query enhancement**: Cortex extends user queries with semantic context before OCR processing
+4. **Layered architecture**: New knowledge pushes previous layers down, creating temporal relationships
 
-<p align="center">
-  <a href="https://huggingface.co/deepseek-ai/DeepSeek-OCR"><b>📥 Model Download</b></a> |
-  <a href="https://github.com/deepseek-ai/DeepSeek-OCR/blob/main/DeepSeek_OCR_paper.pdf"><b>📄 Paper Link</b></a> |
-  <a href="./DeepSeek_OCR_paper.pdf"><b>📄 Arxiv Paper Link</b></a> |
-</p>
+## 🚀 Installation & Setup
 
-<h2>
-<p align="center">
-  <a href="">DeepSeek-OCR: Contexts Optical Compression</a>
-</p>
-</h2>
+### **1.1 Install DeepSeek-OCR Locally**
 
-<p align="center">
-<img src="assets/fig1.png" style="width: 1000px" align=center>
-</p>
-<p align="center">
-<a href="">Explore the boundaries of visual-text compression.</a>       
-</p>
-
-## Release
-- [2025/10/20]🚀🚀🚀 We release DeepSeek-OCR, a model to investigate the role of vision encoders from an LLM-centric viewpoint.
-
-## Contents
-- [Install](#install)
-- [vLLM Inference](#vllm-inference)
-- [Transformers Inference](#transformers-inference)
-  
-
-
-
-
-## Install
->Our environment is cuda11.8+torch2.6.0.
-1. Clone this repository and navigate to the DeepSeek-OCR folder
 ```bash
-git clone https://github.com/deepseek-ai/DeepSeek-OCR.git
-```
-2. Conda
-```Shell
-conda create -n deepseek-ocr python=3.12.9 -y
+# Clone the repository
+git clone https://github.com/alexmy21/DeepSeek-OCR
+cd DeepSeek-OCR
+
+# Create and activate conda environment
+conda create -n deepseek-ocr python=3.10
 conda activate deepseek-ocr
-```
-3. Packages
 
-- download the vllm-0.8.5 [whl](https://github.com/vllm-project/vllm/releases/tag/v0.8.5) 
-```Shell
-pip install torch==2.6.0 torchvision==0.21.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cu118
-pip install vllm-0.8.5+cu118-cp38-abi3-manylinux1_x86_64.whl
+# Install dependencies
 pip install -r requirements.txt
-pip install flash-attn==2.7.3 --no-build-isolation
-```
-**Note:** if you want vLLM and transformers codes to run in the same environment, you don't need to worry about this installation error like: vllm 0.8.5+cu118 requires transformers>=4.51.1
 
-## vLLM-Inference
-- VLLM:
->**Note:** change the INPUT_PATH/OUTPUT_PATH and other settings in the DeepSeek-OCR-master/DeepSeek-OCR-vllm/config.py
-```Shell
-cd DeepSeek-OCR-master/DeepSeek-OCR-vllm
+# Install DeepSeek-OCR
+pip install -e .
 ```
-1. image: streaming output
-```Shell
-python run_dpsk_ocr_image.py
+
+### **1.2 Install HLLSet Cortex Extension**
+
+```bash
+# Install Julia for HLLSet core (if not already installed)
+curl -fsSL https://install.julialang.org | sh
+
+# Install Python-Julia bridge
+pip install julia
+python -c "import julia; julia.install()"
+
+# Install HLLSets.jl package
+julia -e 'using Pkg; Pkg.add("HLLSets")'
+
+# Install the shadow indexer extension
+pip install ./hllset_extension
 ```
-2. pdf: concurrency ~2500tokens/s(an A100-40G)
-```Shell
-python run_dpsk_ocr_pdf.py
+
+## 🏗️ System Architecture
+
+### **Core Components**
+
+```bash
+DeepSeek-OCR/
+├── deepseek_ocr/              # Main package
+│   ├── ocr.py                 # Original OCR interface (currently stub)
+│   ├── hllset/                # HLLSet Cortex implementation
+│   │   ├── core.py            # HLLSet class with similarity algorithms
+│   │   ├── HLLSets.jl         # HLLSet class with similarity algorithms in Julia from SGS.ai
+│   │   ├── HLLSets.py         # Wrapper of HLLSets.jl in Python
+│   │   ├── indexer.py         # Shadow indexer (document index + morphisms)
+│   │   ├── integration.py     # OCRWithHLLIndexing wrapper
+│   │   ├── cortex.py          # Cortex category implementation
+│   │   ├── fpga_optimized.py  # Hardware-accelerated version
+│   │   └── memory_efficient.py # Memory optimizations
+│   └── utils/
+│       ├── semantic_tokenizer.py
+│       └── memory_monitor.py
+├── DeepSeek-OCR-master/       # Original upstream code
+│   └── DeepSeek-OCR-vllm/     # vLLM-based implementation
+│       ├── deepseek_ocr.py    # Main model (DeepseekOCRForCausalLM)
+│       ├── config.py          # OCR configuration
+│       ├── run_dpsk_ocr_image.py  # Image processing script
+│       ├── run_dpsk_ocr_pdf.py    # PDF processing script
+│       └── deepencoder/       # Vision encoders (SAM, CLIP)
+├── examples/                  # Demonstration scripts
+│   ├── demo_mock_ocr.py       # Mock OCR with HLLSet demo
+│   ├── semantic_retrieval.py
+│   ├── hllset_ocr_integration.py
+│   └── advanced_retrieval.py
+└── tests/
+    └── test_hllset_integration.py
 ```
-3. batch eval for benchmarks
-```Shell
-python run_dpsk_ocr_eval_batch.py
-```
-## Transformers-Inference
-- Transformers
+
+### **Data Flow**
+
+1. **Interception**: All user-OCR communication is intercepted
+2. **Conversion**: Text/images → Tokens → HLLSets
+3. **Enhancement**: Queries are extended with Cortex context
+4. **Integration**: OCR responses become new Cortex elements
+5. **Evolution**: New layers are created with relationships
+
+## 🔄 Workflow Details
+
+### **2.1 Initial State: Empty Cortex**
+
+When starting fresh:
+
 ```python
-from transformers import AutoModel, AutoTokenizer
-import torch
-import os
-os.environ["CUDA_VISIBLE_DEVICES"] = '0'
-model_name = 'deepseek-ai/DeepSeek-OCR'
-
-tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
-model = AutoModel.from_pretrained(model_name, _attn_implementation='flash_attention_2', trust_remote_code=True, use_safetensors=True)
-model = model.eval().cuda().to(torch.bfloat16)
-
-# prompt = "<image>\nFree OCR. "
-prompt = "<image>\n<|grounding|>Convert the document to markdown. "
-image_file = 'your_image.jpg'
-output_path = 'your/output/dir'
-
-res = model.infer(tokenizer, prompt=prompt, image_file=image_file, output_path = output_path, base_size = 1024, image_size = 640, crop_mode=True, save_results = True, test_compress = True)
+cortex = HLLSetCortex()  # Completely empty
+# No HLLSets, no layers, no relationships
 ```
-or you can
-```Shell
-cd DeepSeek-OCR-master/DeepSeek-OCR-hf
-python run_dpsk_ocr.py
-```
-## Support-Modes
-The current open-source model supports the following modes:
-- Native resolution:
-  - Tiny: 512×512 （64 vision tokens）✅
-  - Small: 640×640 （100 vision tokens）✅
-  - Base: 1024×1024 （256 vision tokens）✅
-  - Large: 1280×1280 （400 vision tokens）✅
-- Dynamic resolution
-  - Gundam: n×640×640 + 1×1024×1024 ✅
 
-## Prompts examples
+### **2.2 First Interaction Processing**
+
+#### **Input**: User prompt + optional files
+
+##### **Step 1: Conversion to Images**
+
 ```python
-# document: <image>\n<|grounding|>Convert the document to markdown.
-# other image: <image>\n<|grounding|>OCR this image.
-# without layouts: <image>\nFree OCR.
-# figures in document: <image>\nParse the figure.
-# general: <image>\nDescribe this image in detail.
-# rec: <image>\nLocate <|ref|>xxxx<|/ref|> in the image.
-# '先天下之忧而忧'
+# Convert all input to images for consistent processing
+prompt_image = convert_text_to_image(user_prompt)
+file_images = [convert_to_image(file) for file in uploaded_files]
+all_images = [prompt_image] + file_images
 ```
 
+##### **Step 2: Tokenization & HLLSet Creation**
 
-## Visualizations
-<table>
-<tr>
-<td><img src="assets/show1.jpg" style="width: 500px"></td>
-<td><img src="assets/show2.jpg" style="width: 500px"></td>
-</tr>
-<tr>
-<td><img src="assets/show3.jpg" style="width: 500px"></td>
-<td><img src="assets/show4.jpg" style="width: 500px"></td>
-</tr>
-</table>
+```python
+# Use DeepSeek-OCR's tokenizer for consistency
+tokens = deepseek_tokenizer.tokenize(images)
+hllsets = [HLLSet.from_tokens(token_batch) for token_batch in tokens]
 
+# Create initial Cortex layer
+initial_layer = CortexLayer(hllsets, layer_id="initial")
+cortex.add_layer(initial_layer)
+```
 
-## Acknowledgement
+##### **Step 3: OCR Processing with Enhanced Context**
 
-We would like to thank [Vary](https://github.com/Ucas-HaoranWei/Vary/), [GOT-OCR2.0](https://github.com/Ucas-HaoranWei/GOT-OCR2.0/), [MinerU](https://github.com/opendatalab/MinerU), [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR), [OneChart](https://github.com/LingyvKong/OneChart), [Slow Perception](https://github.com/Ucas-HaoranWei/Slow-Perception) for their valuable models and ideas.
+```python
+# Send original + HLLSet-enhanced query to OCR
+enhanced_query = cortex.enhance_query(user_prompt, hllsets)
+ocr_response = deepseek_ocr.process(enhanced_query, file_images)
+```
 
-We also appreciate the benchmarks: [Fox](https://github.com/ucaslcl/Fox), [OminiDocBench](https://github.com/opendatalab/OmniDocBench).
+##### **Step 4: Response Integration**
 
-## Citation
+```python
+# Convert OCR response to HLLSets and integrate
+response_hllsets = convert_ocr_response_to_hllsets(ocr_response)
+cortex.integrate_response(response_hllsets, initial_layer)
+```
 
-coming soon！
+### **2.3 Subsequent Interactions**
 
+#### **2.3.1 Query Enhancement Phase**
 
+Before sending to DeepSeek-OCR:
 
+```python
+def enhance_query_with_cortex(user_input, cortex):
+    # Convert user input to HLLSet
+    input_hllset = HLLSet.from_text(user_input)
+    
+    # Find related HLLSets in Cortex
+    related_hllsets = cortex.find_similar(input_hllset, top_k=5)
+    
+    # Extract semantic context from related HLLSets
+    context = cortex.extract_context(related_hllsets)
+    
+    # Enhance original query
+    enhanced_query = f"{user_input}\n\nContext: {context}"
+    
+    return enhanced_query, related_hllsets
+```
 
+#### **2.3.2 Layer Evolution**
 
+```python
+def process_interaction(user_input, files, cortex):
+    # 1. Enhance query with Cortex context
+    enhanced_query, context_hllsets = enhance_query_with_cortex(user_input, cortex)
+    
+    # 2. Process with DeepSeek-OCR
+    ocr_response = deepseek_ocr.process(enhanced_query, files)
+    
+    # 3. Convert response to HLLSets
+    response_hllsets = convert_ocr_response_to_hllsets(ocr_response)
+    
+    # 4. Create new Cortex layer
+    new_layer = CortexLayer(
+        elements=context_hllsets + response_hllsets,
+        parent_layer=cortex.current_layer,
+        relationships=establish_relationships(context_hllsets, response_hllsets)
+    )
+    
+    # 5. Push layers down and add new layer
+    cortex.push_layer(new_layer)
+    
+    return ocr_response, new_layer
+```
 
+## 🧩 Core Implementation Details
 
+### **HLLSet Creation Pipeline**
+
+```python
+def create_hllsets_from_data(data):
+    """Convert any data type to HLLSets"""
+    if isinstance(data, str):
+        # Text data
+        tokens = tokenizer.tokenize_text(data)
+    elif isinstance(data, Image):
+        # Image data - use OCR to extract text first
+        text = ocr_engine.extract_text(data)
+        tokens = tokenizer.tokenize_text(text)
+    elif isinstance(data, list):
+        # Multiple items
+        tokens = [token for item in data for token in tokenizer.tokenize(item)]
+    
+    return HLLSet.from_tokens(tokens)
+```
+
+### **Cortex Layer Management**
+
+```python
+class CortexLayer:
+    def __init__(self, hllsets, parent_layer=None, relationships=None):
+        self.hllsets = hllsets
+        self.parent_layer = parent_layer
+        self.relationships = relationships or []
+        self.timestamp = datetime.now()
+        self.layer_depth = 0 if parent_layer is None else parent_layer.layer_depth + 1
+
+class HLLSetCortex:
+    def __init__(self):
+        self.layers = []  # Stack of layers, newest first
+        self.entanglement_graph = EntanglementGraph()
+    
+    def push_layer(self, new_layer):
+        """Add new layer and push previous layers down"""
+        self.layers.insert(0, new_layer)  # Newest at index 0
+        
+        # Maintain maximum layer depth
+        if len(self.layers) > MAX_LAYERS:
+            self.layers.pop()  # Remove oldest layer
+    
+    def find_similar(self, query_hllset, top_k=5):
+        """Find similar HLLSets across all layers"""
+        similarities = []
+        for layer in self.layers:
+            for hllset in layer.hllsets:
+                similarity = query_hllset.similarity_to(hllset)
+                if similarity > SIMILARITY_THRESHOLD:
+                    similarities.append((hllset, similarity, layer))
+        
+        # Sort by similarity and return top_k
+        similarities.sort(key=lambda x: x[1], reverse=True)
+        return [item[0] for item in similarities[:top_k]]
+```
+
+### **Entanglement Graph**
+
+```python
+class EntanglementGraph:
+    """Manages relationships between HLLSets across layers"""
+    
+    def add_relationship(self, source_hllset, target_hllset, relationship_type, strength):
+        self.graph.add_edge(
+            source_hllset.id, 
+            target_hllset.id,
+            type=relationship_type,
+            strength=strength,
+            timestamp=datetime.now()
+        )
+    
+    def get_context_paths(self, hllsets, max_hops=3):
+        """Find contextual paths between HLLSets"""
+        context_paths = []
+        for hllset in hllsets:
+            paths = nx.single_source_shortest_path_length(
+                self.graph, hllset.id, cutoff=max_hops
+            )
+            context_paths.extend(paths)
+        return context_paths
+```
+
+## 🔧 Development Roadmap
+
+### **Phase 1: Core Interceptor** ✅
+
+- [x] HLLSet implementation (Julia core + Python wrapper)
+- [x] Basic Cortex layer structure
+- [x] Data interception framework
+
+### **Phase 2: Query Enhancement** 🚧
+
+- [ ] Context extraction from Cortex
+- [ ] Query enhancement algorithms
+- [ ] Layer relationship establishment
+
+### **Phase 3: Advanced Evolution**
+
+- [ ] Multi-layer entanglement graphs
+- [ ] Temporal relationship modeling
+- [ ] Semantic context preservation
+
+### **Phase 4: Production Ready**
+
+- [ ] Performance optimization
+- [ ] Memory management for large Cortices
+- [ ] Integration with DeepSeek-OCR API
+
+## 🎯 Usage Example
+
+```python
+from deepseek_ocr import DeepSeekOCR
+from deepseek_ocr.hllset import HLLSetCortex
+
+# Initialize systems
+ocr = DeepSeekOCR()
+cortex = HLLSetCortex()
+
+# First interaction
+user_prompt = "Explain this research paper about transformers"
+files = ["research_paper.pdf"]
+
+# Process through interceptor
+response, new_layer = cortex.process_interaction(user_prompt, files)
+
+print(f"Created Cortex layer: {new_layer.layer_depth}")
+print(f"Added {len(new_layer.hllsets)} HLLSets to Cortex")
+
+# Subsequent interaction - automatically enhanced
+next_prompt = "What about attention mechanisms?"
+next_response, next_layer = cortex.process_interaction(next_prompt, [])
+
+# The second query was enhanced with context from the first interaction
+```
+
+## 🔬 Key Technical Insights
+
+### **Why HLLSets?**
+
+- **Constant-time similarity**: O(1) regardless of document size
+- **Memory efficiency**: ~1KB per million documents
+- **Mathematical foundation**: Based on HyperLogLog cardinality estimation
+- **Hardware acceleration**: FPGA-ready architecture
+
+### **Cortex Evolution Benefits**
+
+1. **Contextual awareness**: Each query understands previous interactions
+2. **Knowledge accumulation**: Cortex grows smarter with each use
+3. **Semantic relationships**: Automatic discovery of conceptual connections
+4. **Temporal understanding**: Layer structure captures evolution over time
+
+## 🤝 Contributing
+
+We welcome contributions to advance semantic document intelligence! Key areas:
+
+- **HLLSet algorithm improvements**
+- **Cortex layer optimization**
+- **Query enhancement strategies**
+- **Integration patterns with various OCR systems**
+
+## 📚 Research Foundation
+
+This work bridges:
+
+- **HyperLogLog algorithms** for efficient similarity measurement
+- **Category theory** for semantic relationship modeling
+- **Entanglement graphs** for knowledge representation
+- **Shadow indexing** for non-intrusive system enhancement
+
+## References
+
+1. <https://github.com/vllm-project/vllm>
+2. <https://blocks.diy/website/home>
+3. FPGA in Quantum Chips <https://www.msn.com/en-us/money/companies/amd-quietly-cracks-open-quantum-opportunity/ar-AA1PdFjn?ocid=hpmsn&cvid=65e4421733094cd7e26cbada26f4f90a&ei=17>
+4. BI Explorer, BIE-1 <https://ysln.ycwb.com/content/2025-10/25/content_53753735.html>
+5. <https://medium.com/ai-ai-oh/using-metadata-as-a-weapon-against-ai-fakes-635d0b6b01ec>
+
+---
