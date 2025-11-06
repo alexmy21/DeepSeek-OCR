@@ -1,8 +1,8 @@
-Excellent idea! Let me integrate all our HLLSet Cortex components into a cohesive Python library that can serve as a shadow extension for DeepSeek-OCR. Here's the complete implementation:
+# HLLSet Cortex Library
 
 ## Library Structure
 
-```
+```bash
 deepseek_ocr/
 ├── __init__.py
 ├── hllset_cortex/

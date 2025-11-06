@@ -388,5 +388,6 @@ This work bridges:
 3. FPGA in Quantum Chips <https://www.msn.com/en-us/money/companies/amd-quietly-cracks-open-quantum-opportunity/ar-AA1PdFjn?ocid=hpmsn&cvid=65e4421733094cd7e26cbada26f4f90a&ei=17>
 4. BI Explorer, BIE-1 <https://ysln.ycwb.com/content/2025-10/25/content_53753735.html>
 5. <https://medium.com/ai-ai-oh/using-metadata-as-a-weapon-against-ai-fakes-635d0b6b01ec>
+6. <https://matinmavaddat.substack.com/p/testing-systemic-qualities-understanding> <https://www.linkedin.com/pulse/why-good-metrics-dont-guarantee-systems-matin-mavaddat-8hmle/?trackingId=hzXlooAfTHGc8zUVOkxxlQ%3D%3D>
 
 ---

@@ -1,6 +1,6 @@
 import os
 from typing import Dict, List, Optional
-from ..HLLSets import HLLSet, HLLSetConfig
+from ..core.HLLSets import HllSet # , HLLSetConfig
 from ..git_cortex.git_store import GitCortex, GitCortexConfig
 from ..hi_index.redis_index import RedisHIIndex, HIIndexRecord
 from ..hi_index.synchronizer import HIIndexSynchronizer

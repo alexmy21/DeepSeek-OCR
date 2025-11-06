@@ -3,12 +3,12 @@ import json
 import git
 from typing import Dict, List, Set, Optional
 from dataclasses import dataclass, asdict
-from ..core.hllset import HLLSet
+from ..core.HLLSets import HllSet
 
 @dataclass
 class GitCortexConfig:
     repo_path: str = "./hllset_cortex_repo"
-    hllset_dir: str = "hllsets"
+    hllset_dir: str = "HLLSets"
     context_dir: str = "contexts"
     raw_data_dir: str = "raw_data"
     hi_idx_dir: str = "hi_idx_states"
@@ -47,16 +47,16 @@ class GitCortex:
         repo.index.add([readme_path])
         repo.index.commit("Initial commit: HLLSet Cortex structure")
     
-    def store_hllset(self, hllset: HLLSet) -> str:
+    def store_hllset(self, hllset: HllSet) -> str:
         """Store HLLSet and return SHA1"""
         serialized = hllset.serialize()
         return self._store_blob(serialized, self.config.hllset_dir)
     
-    def get_hllset(self, sha1: str) -> Optional[HLLSet]:
+    def get_hllset(self, sha1: str) -> Optional[HllSet]:
         """Retrieve HLLSet by SHA1"""
         blob_content = self._get_blob_content(sha1)
         if blob_content:
-            return HLLSet.deserialize(blob_content)
+            return HllSet.deserialize(blob_content)
         return None
     
     def store_raw_data(self, data: bytes, data_type: str = "text") -> str:
