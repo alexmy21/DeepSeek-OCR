@@ -1,0 +1,43 @@
+<svg width="600" height="400" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .category { fill: #e1f5fe; stroke: #01579b; stroke-width: 2; }
+    .functor { stroke: #d32f2f; stroke-width: 3; marker-end: url(#arrowhead); }
+    .label { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; }
+    .category-label { font-size: 18px; fill: #01579b; }
+    .functor-label { fill: #d32f2f; }
+  </style>
+  
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#d32f2f"/>
+    </marker>
+  </defs>
+  
+  <!-- Environment Category -->
+  <rect x="50" y="150" width="150" height="100" class="category" rx="10"/>
+  <text x="125" y="120" text-anchor="middle" class="label category-label">Env</text>
+  <text x="125" y="185" text-anchor="middle" class="label">Environmental States</text>
+  <text x="125" y="205" text-anchor="middle" class="label">Sensor Readings</text>
+  
+  <!-- HLL Category -->
+  <rect x="250" y="150" width="150" height="100" class="category" rx="10"/>
+  <text x="325" y="120" text-anchor="middle" class="label category-label">HLL</text>
+  <text x="325" y="185" text-anchor="middle" class="label">HLLSets</text>
+  <text x="325" y="205" text-anchor="middle" class="label">Thoughts</text>
+  
+  <!-- Act Category -->
+  <rect x="450" y="150" width="150" height="100" class="category" rx="10"/>
+  <text x="525" y="120" text-anchor="middle" class="label category-label">Act</text>
+  <text x="525" y="185" text-anchor="middle" class="label">Actuators</text>
+  <text x="525" y="205" text-anchor="middle" class="label">Commands</text>
+  
+  <!-- Perception Functor -->
+  <line x1="200" y1="200" x2="250" y2="200" class="functor"/>
+  <text x="225" y="190" text-anchor="middle" class="label functor-label">Perception (P)</text>
+  <text x="225" y="215" text-anchor="middle" class="label">Env → HLL</text>
+  
+  <!-- Actuation Functor -->
+  <line x1="400" y1="200" x2="450" y2="200" class="functor"/>
+  <text x="425" y="190" text-anchor="middle" class="label functor-label">Actuation (A)</text>
+  <text x="425" y="215" text-anchor="middle" class="label">HLL → Act</text>
+</svg>

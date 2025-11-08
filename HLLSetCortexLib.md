@@ -934,3 +934,7 @@ result = recognize_with_cortex("research_paper.png")
 ```
 
 This library provides a complete, integrated solution that can be easily added to your DeepSeek-OCR fork as a shadow extension. The modular design allows for different components to be used independently while providing a seamless integration experience. 🚀
+
+```math
+ℒ_DPO(π_θ) = -𝔼[(x, y_w, y_l) ~ D] \text{ log } σ(β \text{ log}(π_θ(y_w|x)/π_ref(y_w|x)) — β log(π_θ(y_l|x)/π_ref(y_l|x)))
+```
