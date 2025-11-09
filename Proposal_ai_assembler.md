@@ -8,7 +8,7 @@
   <img src="assets/1112548.png" width="100%" alt="SGS.ai" />
 </td>
 <td>
-  <h1>Revolutionary AI Architecture: Chinese as the Assembly Language Foundation</h1>
+  <h1>Revolutionary AI Architecture: Chinese as the AI Assembly Language Foundation</h1>
 </td>
 </tr>
 </table>
