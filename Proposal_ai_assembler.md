@@ -1,4 +1,17 @@
-# Revolutionary AI Architecture: Chinese as the Assembly Language Foundation
+<!-- markdownlint-disable first-line-h1 -->
+<!-- markdownlint-disable html -->
+<!-- markdownlint-disable no-duplicate-header -->
+
+<table>
+<tr>
+<td width="30%">
+  <img src="assets/1112548.png" width="100%" alt="SGS.ai" />
+</td>
+<td>
+  <h1>Revolutionary AI Architecture: Chinese as the Assembly Language Foundation</h1>
+</td>
+</tr>
+</table>
 
 ## Executive Summary
 

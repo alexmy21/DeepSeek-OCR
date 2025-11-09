@@ -1,4 +1,17 @@
-# 80K Chinese HLLSet Cortex vs Traditional LLMs
+<!-- markdownlint-disable first-line-h1 -->
+<!-- markdownlint-disable html -->
+<!-- markdownlint-disable no-duplicate-header -->
+
+<table>
+<tr>
+<td width="30%">
+  <img src="assets/1112548.png" width="100%" alt="SGS.ai" />
+</td>
+<td>
+  <h1>80K Chinese HLLSet Cortex vs Traditional LLMs</h1>
+</td>
+</tr>
+</table>
 
 ## The Scale Reality Check
 

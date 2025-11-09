@@ -1,4 +1,17 @@
-# Chinese HLLSet Cortex: The Assembly Language for AI
+<!-- markdownlint-disable first-line-h1 -->
+<!-- markdownlint-disable html -->
+<!-- markdownlint-disable no-duplicate-header -->
+
+<table>
+<tr>
+<td width="30%">
+  <img src="assets/1112548.png" width="100%" alt="SGS.ai" />
+</td>
+<td>
+  <h1>Chinese HLLSet Cortex: The Assembly Language for AI</h1>
+</td>
+</tr>
+</table>
 
 ## Revolutionary Architecture: Chinese as the Machine Language of Thought
 

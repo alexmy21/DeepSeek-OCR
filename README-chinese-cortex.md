@@ -1,4 +1,17 @@
-# README: Chinese HLLSet Cortex Implementation
+<!-- markdownlint-disable first-line-h1 -->
+<!-- markdownlint-disable html -->
+<!-- markdownlint-disable no-duplicate-header -->
+
+<table>
+<tr>
+<td width="30%">
+  <img src="assets/1112548.png" width="100%" alt="SGS.ai" />
+</td>
+<td>
+  <h1>README: Chinese HLLSet Cortex Implementation</h1>
+</td>
+</tr>
+</table>
 
 ## Project Overview
 

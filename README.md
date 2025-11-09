@@ -2,11 +2,16 @@
 <!-- markdownlint-disable html -->
 <!-- markdownlint-disable no-duplicate-header -->
 
-<div align="center">
-  <img src="assets/1112548.png" width="30%" alt="SGS.ai" />
-</div>
-
-# HLLSet Cortex: Semantic Intelligence Layer for DeepSeek-OCR
+<table>
+<tr>
+<td width="30%">
+  <img src="assets/1112548.png" width="100%" alt="SGS.ai" />
+</td>
+<td>
+  <h1>HLLSet Cortex: Semantic Intelligence Layer for DeepSeek-OCR</h1>
+</td>
+</tr>
+</table>
 
 ## 🧠 Overview
 

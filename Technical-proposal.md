@@ -1,5 +1,17 @@
+<!-- markdownlint-disable first-line-h1 -->
+<!-- markdownlint-disable html -->
+<!-- markdownlint-disable no-duplicate-header -->
 
-# Technical Proposal Summary
+<table>
+<tr>
+<td width="30%">
+  <img src="assets/1112548.png" width="100%" alt="SGS.ai" />
+</td>
+<td>
+  <h1>Technical Proposal Summary</h1>
+</td>
+</tr>
+</table>
 
 ## English Version
 
