@@ -1,4 +1,17 @@
-# HLLSets Unified Framework: Presentation Slides
+<!-- markdownlint-disable first-line-h1 -->
+<!-- markdownlint-disable html -->
+<!-- markdownlint-disable no-duplicate-header -->
+
+<table>
+<tr>
+<td width="30%">
+  <img src="assets/1112548.png" width="60%" alt="SGS.ai" />
+</td>
+<td>
+  <h1>HLLSets Unified Framework: Presentation Slides</h1>
+</td>
+</tr>
+</table>
 
 ## **Unified Framework for HLLSets: Category Theory, Kinematics, and Transfer Learning**
 
