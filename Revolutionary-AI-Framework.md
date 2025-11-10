@@ -5,7 +5,7 @@
 <table>
 <tr>
 <td width="30%">
-  <img src="assets/1112548.png" width="100%" alt="SGS.ai" />
+  <img src="assets/1112548.png" width="60%" alt="SGS.ai" />
 </td>
 <td>
   <h1>Revolutionary AI Framework: Using Chinese as the Foundation Language for HLLSet Cortex</h1>

@@ -5,7 +5,7 @@
 <table>
 <tr>
 <td width="30%">
-  <img src="assets/1112548.png" width="100%" alt="SGS.ai" />
+  <img src="assets/1112548.png" width="60%" alt="SGS.ai" />
 </td>
 <td>
   <h1>Technical Proposal Summary</h1>
