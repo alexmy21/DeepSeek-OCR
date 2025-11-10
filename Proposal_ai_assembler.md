@@ -119,6 +119,8 @@ We invite developers and researchers to join this computing revolution:
 3. **AI Researchers**: Explore new execution paradigms
 4. **Linguists**: Refine the Chinese instruction set
 
+---
+
 ### This represents the **x86 moment for AI** - defining a fundamental instruction set architecture that will power the next generation of artificial intelligence.
 
 ---
