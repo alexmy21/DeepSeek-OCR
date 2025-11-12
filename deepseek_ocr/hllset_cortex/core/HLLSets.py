@@ -254,7 +254,7 @@ class HllSet:
 
 # Alternative Python implementation
 class PythonHllSet:
-    """Pure Python fallback implementation of HLLSet"""
+    """Pure Python fallback implementation of HllSet"""
     
     def __init__(self, p: int = 10):
         self.p = p

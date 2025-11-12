@@ -61,6 +61,48 @@
             margin: 0 1rem;
             align-self: center;
         }
+        @media print {
+            body {
+                background: white;
+            }
+            #sidebar, #menu-toggle, #print-button {
+                display: none !important;
+            }
+            #content-container {
+                padding: 0;
+                margin: 0;
+            }
+            .content-section {
+                display: block !important;
+                page-break-after: always;
+                page-break-inside: avoid;
+                padding: 2rem;
+                min-height: 100vh;
+            }
+            .content-section:last-child {
+                page-break-after: auto;
+            }
+        }
+        
+        #print-button {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            z-index: 50;
+            background: #1d4ed8;
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        #print-button:hover {
+            background: #1e40af;
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
@@ -347,17 +389,21 @@
             </section>
 
         </main>
+        <button id="print-button" onclick="printAllSlides()">
+            📄 Print as PDF Slides
+        </button>
     </div>
 
     <script>
+        let kinematicChartInstance = null;
+        let contentSections = null;
+
         document.addEventListener('DOMContentLoaded', () => {
             const navLinks = document.querySelectorAll('.nav-link');
-            const contentSections = document.querySelectorAll('.content-section');
+            contentSections = document.querySelectorAll('.content-section');
             const navItems = document.querySelectorAll('#sidebar ul li');
             const menuToggle = document.getElementById('menu-toggle');
             const sidebar = document.getElementById('sidebar');
-
-            let kinematicChartInstance = null;
 
             function renderKinematicChart() {
                 const ctx = document.getElementById('kinematicChart');
@@ -411,6 +457,9 @@
                 });
             }
 
+            // Make renderKinematicChart available globally
+            window.renderKinematicChart = renderKinematicChart;
+
             navLinks.forEach(link => {
                 link.addEventListener('click', (e) => {
                     e.preventDefault();
@@ -452,6 +501,50 @@
                 }
             });
         });
+
+        function printAllSlides() {
+            // Show all sections for printing
+            if (contentSections) {
+                contentSections.forEach(section => {
+                    section.classList.remove('hidden');
+                });
+            }
+            
+            // Destroy chart before printing to avoid rendering issues
+            if (kinematicChartInstance) {
+                kinematicChartInstance.destroy();
+                kinematicChartInstance = null;
+            }
+            
+            // Recreate the chart for printing
+            if (window.renderKinematicChart) {
+                window.renderKinematicChart();
+            }
+            
+            // Small delay to ensure chart is rendered
+            setTimeout(() => {
+                window.print();
+                
+                // After printing, restore the original view
+                setTimeout(() => {
+                    if (contentSections) {
+                        contentSections.forEach(section => {
+                            section.classList.add('hidden');
+                        });
+                        
+                        // Show the active section
+                        const activeNav = document.querySelector('.active-nav .nav-link');
+                        if (activeNav) {
+                            const targetId = activeNav.getAttribute('data-target');
+                            const targetSection = document.getElementById(targetId);
+                            if (targetSection) {
+                                targetSection.classList.remove('hidden');
+                            }
+                        }
+                    }
+                }, 100);
+            }, 500);
+        }
     </script>
 
 </body>

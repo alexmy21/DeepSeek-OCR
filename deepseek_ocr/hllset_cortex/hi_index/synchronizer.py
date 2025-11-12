@@ -1,5 +1,5 @@
 import json
-from typing import Dict, Any
+from typing import Set, Dict, Any
 from .redis_index import RedisHIIndex
 from ..git_cortex.git_store import GitCortex
 

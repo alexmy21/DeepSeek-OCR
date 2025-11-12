@@ -2,7 +2,7 @@ import redis
 import json
 from typing import Dict, Set, List, Optional, Any
 from dataclasses import dataclass, asdict
-from ..core.HLLSets import HLLSet
+from ..core.HLLSets import HllSet
 from ..git_cortex.git_store import GitCortex
 
 @dataclass
@@ -71,7 +71,7 @@ class RedisHIIndex:
         
         return HIIndexRecord(**decoded_data)
     
-    def find_similar(self, query_hllset: HLLSet, 
+    def find_similar(self, query_hllset: HllSet, 
                     similarity_threshold: float = 0.6,
                     max_results: int = 100) -> List[Dict]:
         """Find similar HLLSets using cardinality filtering"""
@@ -114,7 +114,7 @@ class RedisHIIndex:
         return results
     
     def get_tokens_above_cardinality(self, threshold: float) -> Set[str]:
-        """Get all HLLSet SHA1s with cardinality >= threshold"""
+        """Get all HllSet SHA1s with cardinality >= threshold"""
         shas = self.redis.zrangebyscore('hi_idx:cardinality_index', 
                                        threshold, float('inf'))
         return {sha.decode('utf-8') for sha in shas}
