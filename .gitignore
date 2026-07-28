@@ -1,4 +1,33 @@
-=*
-# .PDF/
-.DOC/
-.md/
+# DeepSeek-OCR .gitignore
+# Legacy / archived directories
+_deepseek_ocr_hllset/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Pre-built binary (rebuild from caal-llm)
+caal.so
+caal*.so
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+
+_README.md
+_update.sh
+
+._PDF/
+.DOC
+
+hllset_cortex/crates/hllset_py/target
+
+.venv
