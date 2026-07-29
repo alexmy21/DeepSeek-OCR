@@ -138,12 +138,12 @@ R-link intersections between chapters, rank-based relevance over time.
 ```
 
 At every level — page, chapter, book, temporal layer — the same five
-operations apply: ∪, ∩, \, popcount, key(). No new algebra needed.
+operations apply: ∪, ∩, \\, popcount, key(). No new algebra needed.
 
 ## LUT Initialization Constraint
 
 Per STANDARD.md Appendix D: Loading the LUT with equal-TF external
-vocabulary causes random materialization (Jaccard ≈ 0.03).
+vocabulary causes possible random materialization (Jaccard ≈ 0.03).
 
 **Rule:** The LUT may only contain encoding IDs whose TF reflects
 actual experience. Three valid states:
@@ -154,8 +154,8 @@ actual experience. Three valid states:
 | Lattice-covered | From current HLLSet corpus | From materialization | Resume session |
 | Donor transfer | From donor LUT | Copied from donor | Knowledge transfer |
 
-The decoder vocabulary is never loaded INTO the LUT — it acts only
-as a GATE (gate_TF HLLSet) that filters invalid encoding IDs.
+The decoder vocabulary is never loaded INTO the LUT (it is compressed into HLLSet) — it acts only
+as a GATE (gate_TF HLLSet) that filters invalid encoding IDs from generated HLLSets.
 
 ### Gate Intersection: Probabilistic Filtering
 
@@ -171,7 +171,7 @@ filtered by the gate. This creates a **latent vocabulary**: IDs that are
 currently "illegal" still accumulate experience. When the decoder
 vocabulary expands (model upgrade), rebuilding the gate makes previously
 illegal IDs legal — they materialize immediately at their earned TF.
-No cold start penalty.
+No cold start penalty. In order to implements new entries into vocabulary, you should only "update" TF-gate HLLSet, but due to immutability of all HLLSets, you should generate new instance of TF-gate HLLSet and add it to the top layer of temporal pyramid.
 
 This is the TF-vs-rank separation (STANDARD.md §3.1): **TF is stored
 monotonically (pre-gate), rank is derived at query time (post-gate).**
