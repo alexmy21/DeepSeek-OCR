@@ -81,6 +81,14 @@ impl PyTokenLut {
         }
     }
 
+    /// Record raw byte tokens (from Tokenizer.tokenize()).
+    fn record_all_bytes(&mut self, tokens: Vec<Vec<u8>>) {
+        for t in &tokens {
+            let s = String::from_utf8_lossy(t).to_string();
+            self.record(&s);
+        }
+    }
+
     /// Get the current TF for a token.
     ///
     /// Returns 0 for unknown tokens.

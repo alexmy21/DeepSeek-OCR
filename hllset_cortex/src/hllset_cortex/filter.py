@@ -1,25 +1,25 @@
 # hllset_cortex/filter.py
 """
-HLLSetFilter — semantic compressor for OCR text.
+HLLSetFilter — semantic compressor for ds-ocr encoding streams.
 
-Sits between the vision encoder and the language decoder. Compresses OCR
-output through the HLLSet pipeline, then materializes structurally
-significant tokens back via TF-ranked disambiguation.
+Receives encoding IDs from ds-ocr's vision encoder, processes them
+through the HLLSet Algebra pipeline, and returns restored encoding
+IDs for the decoder.
 
 Architecture (per STANDARD.md):
-    OCR text → DocumentTokenizer (words + bigrams + sentence hashes)
+    ds-ocr encoding IDs → hllset_py.Tokenizer (standard pipeline)
       → MurmurHash3 → HLLSet (32,768-bit bitmap)
         → ∩ gate_TF HLLSet (decoder vocabulary filter)
           → TokenLut (monotonic TF accumulation)
             → materialize (TF-ranked disambiguation)
-              → BPE token IDs → Decoder
+              → restored encoding IDs → ds-ocr Decoder
 
 The gate_TF HLLSet is a content-addressed system-global built from the
 decoder's BPE vocabulary. It filters invalid bit positions at the lattice
-level via intersection — no Python-level word matching.
+level via intersection — no Python-level ID matching.
 
 The LUT is a persistent singleton — created once, grows monotonically
-as documents are ingested. Per STANDARD.md Appendix D: TF is earned
+as encoding streams are ingested. Per STANDARD.md Appendix D: TF is earned
 through experience, never seeded with equal-weight external vocabulary.
 """
 
@@ -29,7 +29,7 @@ import statistics
 
 import hllset_py
 
-from hllset_cortex.domain import DocumentTokenizer
+from hllset_cortex.domain import default_tokenizer
 
 
 @dataclass
@@ -47,7 +47,7 @@ class FilterStats:
 @dataclass
 class FilterResult:
     """Output from one HLLSet filter pass."""
-    tokens: List[str]
+    tokens: List[bytes]
     hllset: Optional[hllset_py.HLLSet] = None
     filtered_hllset: Optional[hllset_py.HLLSet] = None
     stats: FilterStats = field(default_factory=FilterStats)
@@ -55,78 +55,63 @@ class FilterResult:
     error: Optional[str] = None
 
     @property
-    def text(self) -> str:
-        return " ".join(self.tokens)
-
-    @property
     def ok(self) -> bool:
         return self.error is None and len(self.tokens) > 0
 
-    def compare_to(self, original: str) -> "FilterComparison":
-        """Compare filtered output to original text."""
-        import re
-
-        original_tokens = set(re.findall(r"[a-z]{3,20}", original.lower()))
-        filtered_tokens = set(self.tokens)
-        common = original_tokens & filtered_tokens
-        return FilterComparison(
-            original_word_count=len(original_tokens),
-            filtered_word_count=len(filtered_tokens),
-            common_words=len(common),
-            lost_words=sorted(original_tokens - filtered_tokens),
-            novel_words=sorted(filtered_tokens - original_tokens),
-            jaccard=len(common) / max(len(original_tokens | filtered_tokens), 1),
-        )
-
-
-@dataclass
-class FilterComparison:
-    """Comparison between original and filtered text."""
-    original_word_count: int
-    filtered_word_count: int
-    common_words: int
-    lost_words: List[str]
-    novel_words: List[str]
-    jaccard: float
+    @property
+    def token_strings(self) -> List[str]:
+        """Tokens as strings (for display)."""
+        return [t if isinstance(t, str) else t.decode("utf-8", errors="replace") for t in self.tokens]
 
 
 @dataclass
 class HLLSetFilter:
-    """HLLSet-based semantic filter for OCR pipeline.
+    """HLLSet-based semantic filter for ds-ocr encoding streams.
 
-    Maintains a single TokenLut that accumulates vocabulary and TF
-    across all processed documents. The LUT is never rebuilt — TF
-    is monotonic (CRDT property).
+    Maintains a single TokenLut that accumulates encoding ID → hash
+    mappings with monotonic TF across all ingested documents.
 
-    Optional gate_TF HLLSet filters invalid bit positions at the
+    Optional gate_TF HLLSet filters invalid encoding IDs at the
     lattice level via intersection. Built once from the decoder's
-    BPE vocabulary and never changes (IICA: immutable gate).
+    vocabulary and never changes (IICA: immutable gate).
 
     Usage:
-        filt = HLLSetFilter(max_tokens=4096)
-        result = filt.process(ocr_text)
+        filt = HLLSetFilter()
+        # Process encoding IDs from ds-ocr
+        result = filt.process(encoding_ids_bytes)
         # With gate:
-        result = filt.process(ocr_text, gate_hllset=gate)
-
-        # ... more documents ...
-        print(filt.summary())  # convergence stats
+        filt.gate_hllset = gate_hllset
+        result = filt.process(encoding_ids_bytes)
+        # ... more streams ...
+        print(filt.summary())
     """
 
-    max_tokens: int = 4096
     _lut: Optional[hllset_py.TokenLut] = None
     _history: List[FilterStats] = field(default_factory=list)
     _gate_hllset: Optional[hllset_py.HLLSet] = None
+    _tokenizer: Optional[hllset_py.Tokenizer] = None
 
     @property
     def lut(self) -> hllset_py.TokenLut:
         """The persistent TokenLut singleton.
 
         Created on first access. Never rebuilt — TF accumulates
-        monotonically across all documents.
+        monotonically across all encoding streams.
         """
         if self._lut is None:
             self._lut = hllset_py.TokenLut()
         return self._lut
+
+    @property
+    def tokenizer(self) -> hllset_py.Tokenizer:
+        """The standard tokenizer (lazy-init from domain config)."""
+        if self._tokenizer is None:
+            self._tokenizer = default_tokenizer()
+        return self._tokenizer
+
+    @tokenizer.setter
+    def tokenizer(self, tok: hllset_py.Tokenizer):
+        self._tokenizer = tok
 
     @property
     def history(self) -> List[FilterStats]:
@@ -136,10 +121,10 @@ class HLLSetFilter:
     def gate_hllset(self) -> Optional[hllset_py.HLLSet]:
         """The content-addressed gate_TF HLLSet.
 
-        Built once from the decoder's BPE vocabulary. Intersection
+        Built once from the decoder's vocabulary. Intersection
         with this HLLSet filters invalid bit positions at the lattice
-        level — tokens the decoder can't encode have their bits removed.
-        None means no gate (all tokens pass through).
+        level — encoding IDs the decoder can't process have their bits
+        removed. None means no gate (all IDs pass through).
         """
         return self._gate_hllset
 
@@ -147,21 +132,20 @@ class HLLSetFilter:
     def gate_hllset(self, hllset: Optional[hllset_py.HLLSet]):
         self._gate_hllset = hllset
 
-    def process(self, text: str) -> FilterResult:
+    def process(self, data: bytes) -> FilterResult:
         """Run one filter pass: tokenize → HLLSet → gate ∩ → LUT → materialize.
 
-        1. DocumentTokenizer extracts words + bigrams + sentence hashes
+        1. hllset_py.Tokenizer processes raw encoding IDs (standard pipeline)
         2. HLLSet.from_tokens() hashes via MurmurHash3 into 32,768-bit bitmap
-        3. Gate intersection: if gate_hllset is set, intersect to filter
-           invalid bit positions (decoder can't encode those tokens)
-        4. TokenLut.record_all() increments TF for ALL tokens (monotonic)
-           — TF is accumulated from the full token stream, not just gated
+        3. Gate intersection: if gate_hllset is set, filter invalid bit positions
+        4. TokenLut.record_all() increments TF for ALL tokens (monotonic CRDT)
         5. materialize() returns highest-TF token at each active bit position
-        """
-        tokenizer = DocumentTokenizer(max_tokens=self.max_tokens)
 
+        Args:
+            data: Raw encoding ID bytes from ds-ocr vision encoder
+        """
         try:
-            tokens = tokenizer.tokenize(text)
+            tokens = self.tokenizer.tokenize(data)
         except Exception as e:
             return FilterResult(tokens=[], error=str(e))
 
@@ -172,35 +156,34 @@ class HLLSetFilter:
                 lut_size=self.lut.len(),
             )
 
-        # Create HLLSet fingerprint from ALL tokens
-        hllset = hllset_py.HLLSet.from_tokens(tokens)
+        # HLLSet fingerprint from ALL tokenized encoding IDs
+        hllset = hllset_py.HLLSet.from_token_bytes(tokens)
 
-        # Accumulate TF for ALL tokens in the persistent LUT (monotonic CRDT)
-        # TF reflects the full token stream — not just gated tokens
-        self.lut.record_all(tokens)
+        # Accumulate TF for ALL tokens (monotonic CRDT, pre-gate)
+        self.lut.record_all_bytes(tokens)
 
-        # Gate intersection: filter bit positions not in the decoder vocabulary
-        # This is an indirect filter — tokens whose bits survive the intersection
-        # are (probabilistically) within the decoder's vocabulary
+        # Gate intersection: filter invalid bit positions
         if self._gate_hllset is not None:
             filtered = hllset.intersection(self._gate_hllset)
         else:
             filtered = hllset
 
-        # Materialize from the filtered HLLSet: TF-ranked disambiguation
+        # Materialize from filtered HLLSet: TF-ranked disambiguation
         materialized = hllset_py.materialize(filtered, self.lut)
 
-        # Compute roundtrip stats against bare words (what the decoder sees)
-        bare_tokens = tokenizer.tokenize_words_only(text)
-        bare_set = set(bare_tokens)
-        matched = [t for t in materialized if t in bare_set]
+        # Extract unigrams only for input count (no n-gram tokens)
+        unigrams = self.tokenizer.tokenize(data) if self.tokenizer else tokens
+        # Use first n tokens as baseline (unigrams come first in n-gram output)
+        n_unigrams = len([t for t in tokens if b"\0" not in t])
+
+        matched = [t for t in materialized if t.encode("utf-8", errors="replace") in tokens]
 
         stats = FilterStats(
-            input_tokens=len(bare_tokens),
+            input_tokens=n_unigrams,
             hllset_popcount=hllset.popcount(),
             gate_popcount=filtered.popcount(),
             output_tokens=len(materialized),
-            compression_ratio=len(materialized) / max(len(bare_tokens), 1),
+            compression_ratio=len(materialized) / max(n_unigrams, 1),
             roundtrip_match=len(matched),
             roundtrip_total=len(materialized),
         )
@@ -214,24 +197,32 @@ class HLLSetFilter:
             lut_size=self.lut.len(),
         )
 
-    def process_batch(self, texts: List[str]) -> List[FilterResult]:
-        """Process multiple documents sequentially.
+    def process_text(self, text: str) -> FilterResult:
+        """Convenience: process text through the standard tokenizer.
 
-        Each document feeds the shared LUT — TF accumulates across
-        the batch, improving disambiguation for later documents.
+        For use with natural language text (not raw encoding IDs).
         """
-        return [self.process(text) for text in texts]
+        data = text.encode("utf-8")
+        return self.process(data)
+
+    def process_batch(self, items: List[bytes]) -> List[FilterResult]:
+        """Process multiple encoding streams sequentially.
+
+        Each stream feeds the shared LUT — TF accumulates across
+        the batch, improving disambiguation for later streams.
+        """
+        return [self.process(data) for data in items]
 
     def summary(self) -> Dict:
-        """Convergence statistics across all processed documents."""
+        """Convergence statistics across all processed streams."""
         if not self._history:
             return {
-                "documents": 0,
+                "streams": 0,
                 "lut_size": self.lut.len(),
                 "lut_positions": self.lut.position_count(),
             }
         return {
-            "documents": len(self._history),
+            "streams": len(self._history),
             "lut_size": self.lut.len(),
             "lut_positions": self.lut.position_count(),
             "gate_popcount": self._gate_hllset.popcount() if self._gate_hllset else 0,

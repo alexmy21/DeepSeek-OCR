@@ -1,100 +1,103 @@
-# HLLSet Cortex — Semantic Document Intelligence
+# HLLSet Cortex — Encoding Restoration for DeepSeek-OCR
 
 A **reference implementation** for HLLSet Algebra applications built on
 [hllset-next](https://github.com/SGS_lib/fractal_manifold/hllset-next).
-This module is a black-box semantic compression layer for DeepSeek-OCR.
+Receives encoding IDs from ds-OCR's vision encoder, processes them through
+the HLLSet Algebra pipeline, and returns restored encoding IDs for the decoder.
+
+ds-ocr and hllset-cortex are **independent modules**. hllset-cortex never
+sees real tokens — only encoding IDs and their hashes.
 
 ## Concept
 
-OCR text passes through a HyperLogLog-based filter that compresses it
-to a fixed 32,768-bit structural fingerprint, then reconstructs only the
-semantically significant tokens. The filter learns over time — each
-document refines the vocabulary and improves accuracy.
+```text
+ds-OCR Encoder                        ds-OCR Decoder
+      │                                      ▲
+      │ encoding IDs          restored enc IDs │
+      ▼                                      │
+╔══════════════════════════════════════════════════╗
+║              hllset-cortex (black box)           ║
+║                                                  ║
+║  encoding IDs → Tokenizer → HLLSet → gate ∩      ║
+║    → TokenLut (TF) → materialize → restored IDs  ║
+║                                                  ║
+║  Results: Token-LUT, HLLSets, Lattice            ║
+╚══════════════════════════════════════════════════╝
+```
 
+## Scenario: PDF Book → Holographic Memory
+
+```text
+page₁ → HLLSet₁ ─┐
+page₂ → HLLSet₂ ─┤
+  ...            ├─ ∪ → chapter₁ ─┐
+page₁₀ → HLLSet₁₀┘                ├─ ∪ → book
+                    chapter₂ ─────┘
+                                      │
+                                      ▼
+                              temporal pyramid L₀→L₆
+                              (holographic memory)
 ```
-OCR text → DocumentTokenizer → HLLSet (32,768-bit) → TokenLut (TF) → materialize → Decoder
-               │                      │                    │
-          words+bigrams          MurmurHash3        monotonic CRDT
-          (domain-specific)     (hllset-core)       (TF earned)
-```
+
+Each scanned page produces an HLLSet. Chapters are unions of page HLLSets.
+The book is a union of chapters. After scanning, the book is committed to
+the temporal pyramid creating holographic memory (STANDARD.md §4.2, §4.11).
 
 ## Architecture
 
-Built directly on [hllset-next](https://github.com/SGS_lib/fractal_manifold/hllset-next)
-per the [STANDARD.md](https://github.com/SGS_lib/fractal_manifold/hllset-next/_DOCS/dev/STANDARD.md).
-No caal-llm dependency — this is a reference implementation demonstrating
-how to build an HLLSet Algebra application on the platform.
+Built directly on hllset-next per STANDARD.md. Zero caal-llm code.
 
 | Layer | Crate | Role |
-|-------|-------|------|
-| Python domain logic | `domain.py` | OCR tokenizer (words, bigrams, trigrams, sentence hashes) |
-| Python pipeline | `filter.py`, `pipeline.py` | Filter orchestration, BPE gate |
-| Rust bindings | `hllset_py` (crates/) | Thin PyO3 wrapper around hllset-next |
-| Rust core | `hllset-core` | HLLSet, MurmurHash3, IICA, BSS |
-
-Three files, three concepts:
-
-| File | What | Lines |
-|------|------|-------|
-| `domain.py` | OCR tokenizer (words, bigrams, trigrams, sentence hashes) | ~95 |
-| `filter.py` | HLLSet filter with persistent LUT + TF | ~190 |
-| `pipeline.py` | Black-box OCR pipeline (GATE + BPE) | ~180 |
+| ------- | ------- | ------ |
+| Python config | `domain.py` | Tokenizer configuration for ds-ocr encoding IDs |
+| Python pipeline | `filter.py`, `pipeline.py` | Filter orchestration, gate_TF HLLSet, BPE interface |
+| Rust bindings | `hllset_py` (crates/) | PyO3 wrapper: HLLSet, TokenLut, Tokenizer, materialize |
+| Rust core (vendored) | hllset-core, hllset-dsl | HLLSet algebra, MurmurHash3, standard tokenizer |
 
 ## Quick Start
 
 ```bash
-# One-time setup (from hllset_cortex/ project root)
-python3 -m venv .venv
-source .venv/bin/activate
-pip install maturin
-
-# Build and install the Rust engine
-cd crates/hllset_py
-maturin build --release
-pip install target/wheels/hllset_py-*.whl
-cd ../..
-
-# Install the Python package
-pip install -e .
-
-# (optional) Register Jupyter kernel for notebooks
-pip install jupyter ipykernel
-python -m ipykernel install --user --name hllset-cortex
+# One-time setup
+bash setup.sh
 ```
 
 ```python
-from hllset_cortex import HLLSetFilter
+from hllset_cortex import HLLSetFilter, default_tokenizer
 
-filt = HLLSetFilter(max_tokens=4096)
-result = filt.process("The neural network model processes image data.")
+filt = HLLSetFilter()
+filt.tokenizer = default_tokenizer()
 
-print(f"Materialized: {result.tokens}")
-print(f"HLLSet key: {result.hllset.content_key()[:40]}...")
+# Process encoding ID streams from ds-ocr
+result = filt.process_text("enc10253 enc18278 enc50690 enc10325 enc1805 enc6579")
+
+print(f"Restored IDs: {result.token_strings}")
+print(f"HLLSet key:  {result.hllset.content_key()[:40]}...")
 ```
 
-See `notebooks/01_ocr_hllset_pipeline.ipynb` for the full validation pipeline.
+See `notebooks/01_ocr_hllset_pipeline.ipynb` for the full validation pipeline
+including OCR encode/decode simulation.
 
 ## Key Properties (IICA)
 
-Per STANDARD.md Part I — every operation satisfies:
+Per STANDARD.md Part I:
 
-- **Idempotent**: same text → same HLLSet, every time
+- **Idempotent**: same encoding IDs → same HLLSet, every time
 - **Immutable**: HLLSets never change once created
 - **Content-Addressed**: HLLSet key = SHA1 of serialized bytes
 
 ## LUT Initialization Constraint
 
-Per STANDARD.md Appendix D: The LUT must only contain tokens whose TF
-reflects actual experience. The LUT starts cold (empty) and accumulates
-TF through document ingestion. Never seed with equal-TF vocabulary —
-it causes random materialization (Jaccard ≈ 0.03).
+Per STANDARD.md Appendix D: The LUT starts cold (empty) and accumulates
+TF through encoding stream ingestion. Never seed with equal-TF vocabulary.
 
 ## Dependencies
 
-- `hllset-py` — Rust HLLSet engine via PyO3 (direct hllset-core binding)
+- `hllset-py` — self-contained Rust PyO3 binding (vendored hllset-core + hllset-dsl)
 - Python 3.10+
 
 ## Reference
 
-- [STANDARD.md](https://github.com/SGS_lib/fractal_manifold/hllset-next/_DOCS/dev/STANDARD.md) — governing development standard
+- [STANDARD.md](docs/STANDARD.md) — governing development standard
+- [IICA_PRINCIPLES.md](docs/IICA_PRINCIPLES.md) — IICA gate definition
+- [DESIGN.md](DESIGN.md) — this module's design
 - [hllset-next](https://github.com/SGS_lib/fractal_manifold/hllset-next) — platform

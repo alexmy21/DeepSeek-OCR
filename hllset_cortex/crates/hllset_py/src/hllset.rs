@@ -43,6 +43,17 @@ impl PyHLLSet {
         }
     }
 
+    /// Create an HLLSet from raw byte tokens (from Tokenizer.tokenize()).
+    ///
+    /// Each byte token is MurmurHash3-hashed directly — no UTF-8 decoding.
+    /// This is the preferred path when using the standard hllset-dsl Tokenizer.
+    #[staticmethod]
+    fn from_token_bytes(tokens: Vec<Vec<u8>>) -> Self {
+        PyHLLSet {
+            inner: HLLSet::from_tokens(&tokens),
+        }
+    }
+
     /// SHA-1 content key: "h:<40 hex chars>".
     ///
     /// Deterministic — same bit pattern always produces the same key.
