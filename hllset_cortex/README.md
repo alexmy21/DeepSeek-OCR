@@ -13,7 +13,7 @@ sees real tokens — only encoding IDs and their hashes.
 ```text
 ds-OCR Encoder                        ds-OCR Decoder
       │                                      ▲
-      │ encoding IDs          restored enc IDs │
+      │ encoding IDs        restored enc IDs │
       ▼                                      │
 ╔══════════════════════════════════════════════════╗
 ║              hllset-cortex (black box)           ║
@@ -56,10 +56,14 @@ Built directly on hllset-next per STANDARD.md. Zero caal-llm code.
 
 ## Quick Start
 
+### One-time setup
+
 ```bash
-# One-time setup
+# hllset-cortex (Rust crate + Python package)
 bash setup.sh
 ```
+
+### hllset-cortex only (simulated encoding IDs, no GPU)
 
 ```python
 from hllset_cortex import HLLSetFilter, default_tokenizer
@@ -74,8 +78,36 @@ print(f"Restored IDs: {result.token_strings}")
 print(f"HLLSet key:  {result.hllset.content_key()[:40]}...")
 ```
 
-See `notebooks/01_ocr_hllset_pipeline.ipynb` for the full validation pipeline
-including OCR encode/decode simulation.
+### Full pipeline with real DeepSeek-OCR (GPU required)
+
+```bash
+# Requires: RTX 3060 12GB (or compatible GPU), conda env deepseek-ocr
+conda activate deepseek-ocr
+cd /home/alexmy/SGS/DeepSeek-OCR/hllset_cortex
+
+# End-to-end: image → OCR → token IDs → hllset-cortex → decode
+CUDA_VISIBLE_DEVICES=0 python notebooks/e2e_dsocr_hllset.py
+
+# Extended notebook (original tests + real ds-OCR integration)
+jupyter notebook notebooks/01_ocr_hllset_pipeline_real.ipynb
+```
+
+### Environment summary
+
+| Environment | Packages | Purpose |
+| ------------- | ---------- | --------- |
+| `.venv` (hllset-cortex) | hllset-py, nbformat | HLLSet algebra only (no GPU needed) |
+| `deepseek-ocr` (conda) | torch 2.4.0, transformers 4.46.3, vllm 0.6.3 | Full ds-OCR model (GPU required) |
+
+Both environments have hllset-cortex installed (setup.sh installs into both).
+
+## Notebooks
+
+| Notebook | Description |
+| ---------- | ------------- |
+| `01_ocr_hllset_pipeline.ipynb` | Validation pipeline with simulated encoding IDs (9 tests) |
+| `01_ocr_hllset_pipeline_real.ipynb` | **Extended**: all 9 tests + Section 10 with real DeepSeek-OCR |
+| `08_holographic_memory.ipynb` | Temporal pyramid: pages → chapters → books → holographic memory |
 
 ## Key Properties (IICA)
 
@@ -90,10 +122,80 @@ Per STANDARD.md Part I:
 Per STANDARD.md Appendix D: The LUT starts cold (empty) and accumulates
 TF through encoding stream ingestion. Never seed with equal-TF vocabulary.
 
+## Real DeepSeek-OCR Integration
+
+DeepSeek-OCR runs locally on RTX 3060 (12GB VRAM) using **Gundam mode**
+(base_size=1024, image_size=640, crop_mode=True). Model footprint: 6.3 GB.
+
+| Aspect | Simulated | Real ds-OCR |
+| -------- | ----------- | ------------- |
+| Encoding IDs | `enc10253 enc18278` | `tid671 tid18308` |
+| ID source | Mock dict (`_encode_map`) | `AutoTokenizer` (128K BPE vocab) |
+| Gate vocabulary | 30 mock IDs | 2008 real token IDs (subset) |
+| OCR text | Hand-crafted | Vision encoder output from image |
+| GPU required | No | Yes (RTX 3060, 6.3GB) |
+| Roundtrip retention | 73% (simulated) | 82% (real, set semantics) |
+
+### Encoding ID format
+
+Real encoding IDs are DeepSeek-OCR BPE token IDs formatted as `tid{N}`:
+
+```text
+OCR text: "The neural network model"
+  → tokenizer → [0, 671, 18308, 4854, 2645]
+  → encoding IDs: "tid0 tid671 tid18308 tid4854 tid2645"
+  → hllset-cortex (3-gram + MurmurHash3 + gate ∩ + LUT)
+  → restored IDs → decoder → text
+```
+
+hllset-cortex is **encoding-agnostic** — whether `enc10253` (simulated) or
+`tid671` (real), MurmurHash3 treats all encoding IDs as opaque byte sequences.
+
+## Use Cases
+
+### Document archive → Holographic memory
+
+```text
+PDF book → DeepSeek-OCR (page by page)
+  → token IDs → hllset-cortex → HLLSet₁, HLLSet₂, ...
+  → ∪ chapter HLLSets → ∪ book HLLSet
+  → commit to temporal pyramid L₀→L₆
+  → query by structural similarity (BSS)
+```
+
+### Cross-document similarity search
+
+```text
+doc₁ → HLLSet₁, doc₂ → HLLSet₂, ...
+BSS(HLLSet₁, HLLSet₂) → related documents cluster
+Gate ∩ filters irrelevant vocabulary
+Shadow indexing: similar docs find each other
+```
+
+### Latent vocabulary activation
+
+```text
+Phase 1: Narrow gate (1000 token IDs) → some IDs survive LUT, filtered from output
+Phase 2: Expanded gate (5000 token IDs) → previously filtered IDs instantly rankable
+No cold start — TF earned during Phase 1 persists across gate changes
+```
+
+### Model upgrade without reindexing
+
+```text
+ds-OCR v2 released → new tokenizer vocabulary
+  → rebuild gate_TF HLLSet from new vocab
+  → old LUT still valid (encoding IDs are just hashes)
+  → new encoding IDs accumulate alongside old ones
+  → no migration needed
+```
+
 ## Dependencies
 
 - `hllset-py` — self-contained Rust PyO3 binding (vendored hllset-core + hllset-dsl)
 - Python 3.10+
+- **For real DeepSeek-OCR**: torch 2.4.0, transformers 4.46.3, vLLM 0.6.3 (optional)
+- **Model**: `deepseek-ai/DeepSeek-OCR` (~6.4GB, downloaded from HuggingFace)
 
 ## Reference
 

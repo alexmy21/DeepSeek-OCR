@@ -218,6 +218,100 @@ ds-ocr and hllset-cortex are **totally independent**:
 The integration point: ds-ocr encoder → encoding IDs → hllset-cortex →
 restored IDs → ds-ocr decoder. hllset-cortex is a black box at this boundary.
 
+### Real Encoding ID Format
+
+With local DeepSeek-OCR, encoding IDs are **BPE token IDs** from the
+model's 128,000-token vocabulary, formatted as `tid{N}` strings:
+
+```text
+Image → DeepSeek-OCR (vision encoder + LLM decoder)
+  → OCR text: "The neural network model"
+  → AutoTokenizer.encode() → [0, 671, 18308, 4854, 2645]
+  → encoding IDs: "tid0 tid671 tid18308 tid4854 tid2645"
+  → hllset-cortex → restored IDs → decoder → text
+```
+
+The simulated format (`enc10253`) and real format (`tid671`) are structurally
+identical — hllset-cortex is encoding-agnostic. MurmurHash3 treats both as
+opaque byte sequences.
+
+| Format | Example | Source | Vocab size |
+| -------- | --------- | -------- | ------------ |
+| Simulated | `enc10253` | Mock `_encode_map` dict | 35 mock IDs |
+| Real ds-OCR | `tid671` | `AutoTokenizer` (BPE) | 128,000 token IDs |
+
+### RTX 3060 (12GB) Deployment
+
+DeepSeek-OCR model runs locally in **Gundam mode**:
+
+```python
+# Gundam mode: base_size=1024, image_size=640, crop_mode=True
+# Optimized for 12GB VRAM — MAX_CROPS=6, CROP_MODE=True
+model.infer(tokenizer, prompt='<image>\nFree OCR.',
+            image_file=path, output_path=out,
+            base_size=1024, image_size=640, crop_mode=True)
+```
+
+| Metric | Value |
+| -------- | ------- |
+| Model size | 6.36 GB (safetensors) |
+| GPU VRAM allocated | 6.3 GB |
+| GPU VRAM free | ~5.7 GB (KV cache headroom) |
+| Resolution mode | 640px tiles, dynamic cropping |
+| OCR latency (simple image) | ~5 seconds |
+| Supported input | PNG, JPG, PDF (via PyMuPDF) |
+
+### Environment
+
+Two isolated environments support different use cases:
+
+| Env | Packages | Has ds-OCR? | Use case |
+| ----- | ---------- | ------------- | ---------- |
+| `.venv` | hllset-py, nbformat | No | HLLSet algebra, notebooks |
+| `deepseek-ocr` (conda) | torch 2.4.0, transformers 4.46.3, vllm 0.6.3 | Yes | Full OCR + hllset pipeline |
+
+`setup.sh` installs hllset-cortex into both environments.
+
+## Use Cases
+
+### Document Archive → Holographic Memory
+
+```text
+PDF book → DeepSeek-OCR (page by page)
+  → token IDs → hllset-cortex → HLLSet₁, HLLSet₂, ...
+  → ∪ chapter HLLSets → ∪ book HLLSet
+  → commit to temporal pyramid L₀→L₆
+  → query by BSS structural similarity
+```
+
+### Cross-Document Semantic Search
+
+```text
+corpus → each doc → HLLSet fingerprint
+BSS(HLLSet_a, HLLSet_b) → similarity score
+  → related documents cluster across languages and formats
+  → gate_TF filters irrelevant vocabulary fragments
+  → shadow indexing: similar docs discover each other
+```
+
+### Latent Vocabulary Activation
+
+```text
+Phase 1: Narrow gate (1000 IDs) → new IDs survive in LUT, filtered from output
+Phase 2: Expanded gate (5000 IDs) → previously hidden IDs instantly rankable
+Key property: TF earned during Phase 1 persists across gate changes
+Per STANDARD.md §3.1: TF stored pre-gate, rank derived post-gate
+```
+
+### Model Upgrade Without Reindexing
+
+```text
+ds-OCR v2 → new tokenizer vocabulary → rebuild gate_TF HLLSet
+  → old LUT still valid (encoding IDs are just hashed bytes)
+  → new IDs accumulate alongside old ones in shared LUT
+  → no cold start, no migration, no reindexing
+```
+
 ## References
 
 - [STANDARD.md](docs/STANDARD.md) — governing development standard
