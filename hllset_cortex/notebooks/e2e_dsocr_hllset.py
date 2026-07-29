@@ -38,6 +38,26 @@ if str(_root.parent) not in sys.path:
 
 os.environ.setdefault('CUDA_VISIBLE_DEVICES', '0')
 
+# ── Check GPU memory before loading ──
+import subprocess, re
+try:
+    result = subprocess.run(
+        ['nvidia-smi', '--query-gpu=memory.used,memory.free', '--format=csv,noheader,nounits', '--id=0'],
+        capture_output=True, text=True, timeout=5
+    )
+    used, free = map(int, result.stdout.strip().split(','))
+    free_gb = free / 1024
+    if free_gb < 7.0:
+        print(f"WARNING: GPU has only {free_gb:.1f} GB free ({used/1024:.1f} GB used).")
+        print("DeepSeek-OCR needs ~7 GB. Check for other processes:")
+        print("  nvidia-smi")
+        print("  kill <PID>  # to free stuck kernels")
+        print("Continuing anyway, but may OOM...\n")
+    else:
+        print(f"GPU memory OK: {free_gb:.1f} GB free\n")
+except Exception:
+    pass  # nvidia-smi not available, skip check
+
 from transformers import AutoModel, AutoTokenizer
 import hllset_py
 from hllset_cortex import HLLSetFilter, default_tokenizer

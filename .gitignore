@@ -31,3 +31,4 @@ _update.sh
 hllset_cortex/crates/hllset_py/target
 
 .venv
+._venv
