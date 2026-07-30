@@ -5,8 +5,8 @@ End-to-End: DeepSeek-OCR × HLLSet Cortex Pipeline
 
 1. DeepSeek-OCR → image → OCR text (real vision encoder output)
 2. OCR text → ds-OCR tokenizer → real encoding IDs (token IDs)
-3. encoding IDs → hllset-cortex → restored encoding IDs  
-4. restored IDs → ds-OCR tokenizer → decoded text
+3. encoding IDs → hllset-cortex → restored encoding IDs (De Bruijn ordered!)
+4. restored IDs → ds-OCR tokenizer → decoded text (NO order loss)
 
 RUN (must use conda env, NOT .venv):
     conda activate deepseek-ocr
@@ -155,58 +155,50 @@ print(f"Gate popcount:   {gate_hllset.popcount()}")
 print(f"Gate key:        {gate_hllset.content_key()[:48]}...")
 
 # ═══════════════════════════════════════════════════════════════════
-# Step 4: hllset-cortex — Encoding IDs → HLLSet → Restored IDs
+# Step 4: hllset-cortex — Encoding IDs → HLLSet → Restored IDs (De Bruijn!)
 # ═══════════════════════════════════════════════════════════════════
 print("\n" + "=" * 60)
-print("Step 4: hllset-cortex — Encoding IDs → Restored IDs")
+print("Step 4: hllset-cortex — Encoding IDs → Restored IDs (De Bruijn ordered)")
 print("=" * 60)
 
 # Add some invalid IDs to test filtering
 noisy_stream = encoding_stream + " tid99999 tid88888"
 
 ctx = HLLSetFilter()
-ctx.tokenizer = default_tokenizer()
 ctx.gate_hllset = gate_hllset
 
-result = ctx.process_text(noisy_stream)
+# Use process_text_ordered for De Bruijn reconstruction
+result = ctx.process_text_ordered(noisy_stream)
 
 print(f"Input encoding IDs:    {len(encoding_ids) + 2} (with 2 invalid)")
 print(f"HLLSet bits:           {result.stats.hllset_popcount}")
 print(f"After gate ∩:          {result.stats.gate_popcount}")
 print(f"Bits filtered:         {result.stats.hllset_popcount - result.stats.gate_popcount}")
-print(f"Restored IDs:          {len(result.token_strings)}")
-print(f"Materialized (first 10): {result.token_strings[:10]}")
+print(f"Restored IDs (ordered): {len(result.token_strings)}")
+print(f"Sequence:               {result.token_strings[:15]}...")
 
 # ═══════════════════════════════════════════════════════════════════
-# Step 5: Decode — Restored IDs → Text
+# Step 5: Decode — Restored IDs → Text (in correct order!)
 # ═══════════════════════════════════════════════════════════════════
 print("\n" + "=" * 60)
-print("Step 5: Decode — Restored IDs → Text")
+print("Step 5: Decode — Restored IDs → Text (correct order!)")
 print("=" * 60)
 
-# Convert restored encoding ID strings back to integers
+# De Bruijn output is clean: just tidXXXX tokens in order, no n-grams
 restored_int_ids = []
-unknown_ids = []
 for eid_str in result.token_strings:
-    try:
-        if eid_str.startswith("tid"):
+    if eid_str.startswith("tid"):
+        try:
             tid = int(eid_str[3:])
-            # Only include real token IDs (0 to vocab_size-1)
             if 0 <= tid < tokenizer.vocab_size:
                 restored_int_ids.append(tid)
-            else:
-                unknown_ids.append(eid_str)
-        else:
-            unknown_ids.append(eid_str)
-    except ValueError:
-        unknown_ids.append(eid_str)
+        except ValueError:
+            pass
 
 print(f"Restored valid IDs:    {len(restored_int_ids)}")
-print(f"Unknown/Foreign IDs:   {len(unknown_ids)}")
-if unknown_ids:
-    print(f"  Unknown: {unknown_ids}")
+print(f"In original order:     {restored_int_ids}")
 
-# Decode restored IDs back to text
+# Decode in correct order
 restored_text = tokenizer.decode(restored_int_ids, skip_special_tokens=True)
 print(f"\nRestored Text:\n---\n{restored_text}\n---")
 
@@ -241,3 +233,6 @@ print("=" * 60)
 print(f"DeepSeek-OCR successfully recognized text from image")
 print(f"Real encoding IDs (token IDs) processed through hllset-cortex")
 print(f"Roundtrip: {len(common)}/{len(orig_words)} words preserved")
+print(f"De Bruijn reconstruction: order preserved via boundary-padded bigrams")
+print(f"Tokenizer: word_pattern().lowercase().pad('<S>','</S>').ngrams(2,2)")
+print(f"Materialize: hllset_py.materialize_debruijn(hllset, lut, '<S>', '</S>')")

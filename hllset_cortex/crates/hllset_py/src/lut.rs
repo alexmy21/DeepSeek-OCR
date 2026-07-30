@@ -200,6 +200,99 @@ pub fn materialize_top_n(hllset: &PyHLLSet, lut: &PyTokenLut, n: usize) -> Vec<S
     candidates.into_iter().map(|(t, _)| t).collect()
 }
 
+/// De Bruijn graph reconstruction from bigram tokens.
+///
+/// Given boundary-padded bigrams (from a tokenizer with `.pad(start, end).ngrams(2,2)`),
+/// builds a De Bruijn graph where each bigram "a\0b" becomes an edge a→b, then
+/// finds an Eulerian path from start_marker to end_marker to reconstruct token order.
+///
+/// # Arguments
+/// * `hllset` — the HLLSet fingerprint containing the bigram bits
+/// * `lut` — the TokenLut mapping bit positions back to token strings
+/// * `start_marker` — boundary start token (e.g., "<S>")
+/// * `end_marker` — boundary end token (e.g., "</S>")
+///
+/// # Returns
+/// A Vec of token strings in reconstructed order, or empty if no path found.
+#[pyfunction]
+pub fn materialize_debruijn(
+    hllset: &PyHLLSet,
+    lut: &PyTokenLut,
+    start_marker: &str,
+    end_marker: &str,
+) -> Vec<String> {
+    let positions = hllset.inner.active_positions();
+
+    // Step 1: Collect bigrams from LUT at active HLLSet positions
+    // Each bigram "prefix\0suffix" becomes an edge prefix→suffix
+    let mut edges: Vec<(String, String)> = Vec::new(); // (prefix, suffix)
+    let mut seen_edges: HashSet<(String, String)> = HashSet::new();
+
+    for (reg, tz) in &positions {
+        for token in lut.lookup_position(*reg, *tz) {
+            // Only process bigrams (contain NUL separator)
+            if let Some(nul_pos) = token.find('\0') {
+                let prefix = token[..nul_pos].to_string();
+                let suffix = token[nul_pos + 1..].to_string();
+                let edge = (prefix, suffix);
+                if seen_edges.insert(edge.clone()) {
+                    edges.push(edge);
+                }
+            }
+        }
+    }
+
+    if edges.is_empty() {
+        return Vec::new();
+    }
+
+    // Step 2: Build adjacency list (prefix → list of suffixes)
+    let mut adj: std::collections::BTreeMap<String, Vec<String>> =
+        std::collections::BTreeMap::new();
+    for (prefix, suffix) in &edges {
+        adj.entry(prefix.clone())
+            .or_default()
+            .push(suffix.clone());
+    }
+
+    // Step 3: Greedy DFS path from start_marker to end_marker
+    let start = start_marker.to_string();
+    let end = end_marker.to_string();
+    let mut path: Vec<String> = Vec::new();
+    let mut current = start.clone();
+    let mut visited: HashSet<(String, String)> = HashSet::new();
+
+    path.push(current.clone());
+
+    for _ in 0..10000 {
+        // safety limit
+        if current == end {
+            return path;
+        }
+
+        if let Some(nexts) = adj.get(&current) {
+            let mut found = false;
+            for next in nexts {
+                let edge_key = (current.clone(), next.clone());
+                if !visited.contains(&edge_key) {
+                    visited.insert(edge_key);
+                    path.push(next.clone());
+                    current = next.clone();
+                    found = true;
+                    break;
+                }
+            }
+            if !found {
+                return path; // dead end — return what we have
+            }
+        } else {
+            return path; // no outgoing edges
+        }
+    }
+
+    path
+}
+
 // ── Hashing utilities ───────────────────────────────────────────────────
 
 /// MurmurHash3 64-bit hash of a token string (seed 0).

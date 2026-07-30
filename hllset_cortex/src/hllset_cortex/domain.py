@@ -54,3 +54,27 @@ def encoding_tokenizer() -> hllset_py.Tokenizer:
         .lowercase()
         .ngrams(1, 3)
     )
+
+
+def debruijn_tokenizer(
+    start: str = "<S>", end: str = "</S>"
+) -> hllset_py.Tokenizer:
+    """Tokenizer for De Bruijn ordered reconstruction.
+
+    Uses boundary-padded bigrams (no unigrams/trigrams) so that
+    materialize_debruijn() can reconstruct token sequence order
+    via Eulerian path traversal through the De Bruijn graph.
+
+    Args:
+        start: Start boundary marker (default "<S>")
+        end: End boundary marker (default "</S>")
+
+    Returns:
+        Tokenizer configured for De Bruijn reconstruction.
+    """
+    return (
+        hllset_py.Tokenizer.word_pattern()
+        .lowercase()
+        .pad(start.encode(), end.encode())
+        .ngrams(2, 2)
+    )

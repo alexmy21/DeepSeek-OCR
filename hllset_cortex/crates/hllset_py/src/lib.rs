@@ -22,7 +22,7 @@ mod pattern;
 mod dsl_tokenizer;
 
 use hllset::PyHLLSet;
-use lut::{materialize, materialize_top_n, murmur3_hash_py, token_to_position_py, PyTokenLut};
+use lut::{materialize, materialize_debruijn, materialize_top_n, murmur3_hash_py, token_to_position_py, PyTokenLut};
 use tokenizer::PyTokenizer;
 
 /// The `hllset_py` Python module.
@@ -40,6 +40,7 @@ fn hllset_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // ── Materialization ──
     m.add_function(wrap_pyfunction!(materialize, m)?)?;
     m.add_function(wrap_pyfunction!(materialize_top_n, m)?)?;
+    m.add_function(wrap_pyfunction!(materialize_debruijn, m)?)?;
 
     // ── Hashing utilities ──
     m.add_function(wrap_pyfunction!(murmur3_hash_py, m)?)?;

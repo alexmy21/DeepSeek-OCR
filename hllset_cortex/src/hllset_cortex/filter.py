@@ -205,6 +205,91 @@ class HLLSetFilter:
         data = text.encode("utf-8")
         return self.process(data)
 
+    def process_ordered(
+        self,
+        data: bytes,
+        start_marker: str = "<S>",
+        end_marker: str = "</S>",
+    ) -> FilterResult:
+        """Run one filter pass with De Bruijn ordered reconstruction.
+
+        Uses a boundary-padded bigram tokenizer so that
+        materialize_debruijn() can reconstruct token sequence order
+        via Eulerian path traversal.
+
+        1. Tokenize with debruijn_tokenizer (pad + bigrams only)
+        2. HLLSet fingerprint
+        3. Gate intersection
+        4. LUT TF accumulation
+        5. materialize_debruijn() — ordered reconstruction
+
+        Args:
+            data: Raw encoding ID bytes
+            start_marker: Boundary start token (default "<S>")
+            end_marker: Boundary end token (default "</S>")
+        """
+        from hllset_cortex.domain import debruijn_tokenizer
+
+        db_tok = debruijn_tokenizer(start_marker, end_marker)
+        try:
+            tokens = db_tok.tokenize(data)
+        except Exception as e:
+            return FilterResult(tokens=[], error=str(e))
+
+        if not tokens:
+            return FilterResult(
+                tokens=[],
+                stats=FilterStats(input_tokens=0),
+                lut_size=self.lut.len(),
+            )
+
+        hllset = hllset_py.HLLSet.from_token_bytes(tokens)
+        self.lut.record_all_bytes(tokens)
+
+        if self._gate_hllset is not None:
+            filtered = hllset.intersection(self._gate_hllset)
+        else:
+            filtered = hllset
+
+        # De Bruijn ordered reconstruction
+        ordered = hllset_py.materialize_debruijn(
+            filtered, self.lut, start_marker, end_marker
+        )
+
+        n_unigrams = len([t for t in tokens if b"\0" not in t])
+
+        stats = FilterStats(
+            input_tokens=n_unigrams,
+            hllset_popcount=hllset.popcount(),
+            gate_popcount=filtered.popcount(),
+            output_tokens=len(ordered),
+            compression_ratio=len(ordered) / max(n_unigrams, 1),
+            roundtrip_match=0,  # debruijn path, match not applicable
+            roundtrip_total=len(ordered),
+        )
+        self._history.append(stats)
+
+        return FilterResult(
+            tokens=ordered,
+            hllset=hllset,
+            filtered_hllset=filtered,
+            stats=stats,
+            lut_size=self.lut.len(),
+        )
+
+    def process_text_ordered(
+        self,
+        text: str,
+        start_marker: str = "<S>",
+        end_marker: str = "</S>",
+    ) -> FilterResult:
+        """Convenience: process text through the De Bruijn tokenizer.
+
+        Returns tokens in reconstructed sequence order.
+        """
+        data = text.encode("utf-8")
+        return self.process_ordered(data, start_marker, end_marker)
+
     def process_batch(self, items: List[bytes]) -> List[FilterResult]:
         """Process multiple encoding streams sequentially.
 

@@ -35,7 +35,7 @@ Reference docs:
     - DESIGN.md (this module's design)
 """
 
-from hllset_cortex.domain import default_tokenizer, encoding_tokenizer
+from hllset_cortex.domain import default_tokenizer, encoding_tokenizer, debruijn_tokenizer
 from hllset_cortex.filter import HLLSetFilter, FilterResult, FilterStats
 from hllset_cortex.pipeline import OCRPipeline, PipelineResult, GateInfo
 

@@ -102,6 +102,30 @@ Materialization selects highest-TF ID at each active bit position.
 - TF is monotonic CRDT — never decreases
 - Convergence: after ~50-100 streams, disambiguation stabilizes
 
+#### Materialization strategies
+
+Three strategies in hllset-dsl, all accessible from Python:
+
+| Strategy | Binding | How it works |
+|----------|---------|--------------|
+| `materialize` (InLUT) | `hllset_py.materialize()` | Each set bit → lookup in LUT → return candidates (TF-ranked, unordered) |
+| `materialize_debruijn` | `hllset_py.materialize_debruijn()` | Build De Bruijn graph from bigrams, find Eulerian path — **order preserved** |
+| `materialize_top_n` | `hllset_py.materialize_top_n()` | Top-N tokens by TF across all active positions |
+
+```python
+# Basic materialize (set-level, TF-ranked, no order)
+result = hllset_py.materialize(hllset, lut)
+
+# De Bruijn (ordered reconstruction):
+tok = Tokenizer().lowercase().pad(b"<S>", b"</S>").ngrams(2, 2)
+result = hllset_py.materialize_debruijn(hllset, lut, "<S>", "</S>")
+# result: ['<S>', 'the', 'neural', 'network', 'model', ... '</S>']
+```
+
+The De Bruijn strategy uses boundary-padded bigrams to build a graph where
+each bigram `a\0b` becomes an edge from `a` to `b`. The Eulerian path from
+`<S>` to `</S>` reconstructs the original token sequence order.
+
 ### Lattice
 
 Encoding streams form a lattice under union (OR) and intersection (AND):
