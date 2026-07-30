@@ -1,3 +1,0 @@
-_deepseek_ocr_hllset
-deepseek_ocr
-hllset_cortex
