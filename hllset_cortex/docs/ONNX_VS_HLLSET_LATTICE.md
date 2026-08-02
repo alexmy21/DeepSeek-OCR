@@ -1,6 +1,6 @@
 # ONNX vs HLLSet Lattice: A Comparative Architecture Analysis
 
->**Two Graph-Based Computational Paradigms — Divergent Foundations, Convergent Patterns**
+>**Two Graph-Based Computational Paradigms — Divergent Foundations, Convergent Patterns** (Prepared with assistance from DeepCode)
 >
 >*July 31, 2026*
 
