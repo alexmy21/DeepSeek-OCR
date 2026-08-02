@@ -31,9 +31,9 @@ runtimes (ONNX Runtime, TensorRT, OpenVINO). It is the de facto standard for
 model exchange in production ML pipelines.
 
 HLLSet Algebra emerged from a different lineage — formal algebraic constraints
-(IICA), probabilistic data structures (HyperLogLog), and the conviction that
+(IICA), probabilistic data structures (HyperLogLog inspired HLLSets), and the conviction that
 content-addressing and immutability could replace the brittle infrastructure of
-token embeddings, attention mechanisms, and gradient descent.
+token embeddings, attention mechanisms, and gradient descent. The paradigm shift was categorical: from explicit tokens and implicit contexts to explicit contexts and implicit tokens.
 
 Yet both architectures are, at their core, **graph-based computational systems**
 where nodes represent operations and edges represent data flow. This structural
