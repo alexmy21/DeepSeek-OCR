@@ -434,15 +434,15 @@ ONNX and HLLSet Lattice represent two points in a larger design space for
 computational intelligence:
 
 ```text
-                    Continuous ◄────────────────► Discrete
-                          │                          │
-                    Float tensors              Binary bitmasks
-                    Gradient descent           Rank rearrangement  
-                    Named identity             Content-addressed
-                    Static snapshot            Live world model
-                    GPU datacenter             FPGA edge
-                          │                          │
-                       ONNX                    HLLSet Lattice
+    Continuous ◄────────────────► Discrete
+         │                          │
+    Float tensors              Binary bitmasks
+    Gradient descent           Rank rearrangement  
+    Named identity             Content-addressed
+    Static snapshot            Live world model
+    GPU datacenter             FPGA edge
+        │                          │
+       ONNX                    HLLSet Lattice
 ```
 
 Neither is universally superior. ONNX dominates the current AI landscape because
