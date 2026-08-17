@@ -47,6 +47,28 @@ consumes the restored IDs. hllset-cortex never sees real tokens.
 └──────────────────────────────────────────────────────────────────┘
 ```
 
+## Two spaces, two morphisms
+
+Tokens (encoding IDs) and HLLSets live in **different spaces** and never cross
+directly:
+
+- **Token space** — `tid{n}` encodings: input, response, and every interchange
+  with the LLM (ds-ocr). The TokenLUT (reverse index + TF) and materialization
+  live here.
+- **HLLSet space** — 32,768-bit sketches: every *structural* operation (union,
+  intersection, difference, popcount, BSS, R-link, DRN, the temporal pyramid).
+
+The only morphisms between the spaces are:
+
+```text
+ingest      tokens → HLLSet   (hash + bootstrap: n-grams, multi-seed)
+materialize HLLSet → tokens   (active positions → TokenLUT lookup)
+```
+
+So structural work is done only on HLLSets; any input/response/interchange with
+the LLM is done only in tokens. A token never becomes a structural value except
+through ingest; an HLLSet never becomes a token except through materialize.
+
 ## Component Roles
 
 ### OCR Encoder/Decoder (ds-ocr, external)

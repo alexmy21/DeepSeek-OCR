@@ -2,15 +2,25 @@
 """
 The EWM lattice — the measured memory a search runs against.
 
-Every observation (a scanned page, a search query) is submitted to the
-lattice the same way (STANDARD.md §4.1, §4.3):
+Two spaces, one boundary:
+
+- **token space** — encoding IDs (``tid{n}``): what the LLM exchanges. The
+  TokenLUT (reverse index + TF) and materialization live here.
+- **HLLSet space** — 32,768-bit sketches: where every structural operation
+  (union, intersection, BSS, R-link, DRN, the temporal pyramid) lives.
+
+The only morphisms between the two spaces are **ingest** (tokens → HLLSet,
+hash + bootstrap) and **materialize** (HLLSet → tokens).
+
+Every observation (a scanned page, a search query) is submitted the same way
+(STANDARD.md §4.1, §4.3):
 
     H(t) = H(S(t), H(t-1), D(t-1), R(t-1), N(t))
 
-- the observation's encoding IDs accumulate TF in the LUT (the LUT is never
-  gated — everything measured is stored),
-- the observation is decomposed against the current state (DRN),
-- the observation is committed to the temporal pyramid.
+- its encoding IDs are ingested: hashed into an HLLSet, and TF accumulates in
+  the TokenLUT (never gated — everything measured is stored),
+- the HLLSet is decomposed against the current state (DRN),
+- the HLLSet is committed to the temporal pyramid.
 
 Page atoms are registered as the searchable `o:` originals; the whole document
 is the `v:` union view. A search query is itself an observation: it is
@@ -30,7 +40,13 @@ from hllset_cortex.temporal import DRN, TemporalPyramid, drn
 
 @dataclass
 class Lattice:
-    """The measured memory: page atoms + LUT + temporal pyramid + context."""
+    """The measured memory.
+
+    ``doc`` / ``context`` / ``pyramid`` are HLLSet-space (structural); ``lut``
+    is token-space (the reverse index materialization reads). ``ingest`` is
+    where the two spaces meet: ids accumulate TF in ``lut``, while the HLLSet
+    enters the structural state (DRN + pyramid).
+    """
 
     doc: Document = field(default_factory=Document)
     lut: hllset_py.TokenLut = field(default_factory=hllset_py.TokenLut)
@@ -53,7 +69,12 @@ class Lattice:
         return self
 
     def ingest(self, observation: hllset_py.HLLSet, ids) -> DRN:
-        """Submit one observation: LUT TF + DRN + temporal-pyramid commit."""
+        """Submit one observation.
+
+        Token space: the ids accumulate TF in the LUT. HLLSet space: the
+        observation is decomposed (DRN) against the context and committed to
+        the temporal pyramid.
+        """
         self.lut.record_all([tid(i) for i in ids])
         d = drn(observation, self.context)
         self.context = self.context.union(observation)

@@ -8,6 +8,12 @@ per STANDARD.md Part X:
     1. Hallucination test (exact-LUT).  A never-measured encoding is flagged.
     2. Context comparison (R-link).      R = S(t) ∩ response, weight = popcount(R).
 
+The two steps live in **different spaces**: the hallucination test is
+token-space (exact-LUT membership), the context comparison is HLLSet-space
+(structural). Tokens and HLLSets never cross directly — ingest (tokens →
+HLLSet, via hash + bootstrap) and materialize (HLLSet → tokens) are the only
+morphisms between them.
+
 This module ports the EWM-nanoLM findings (``nanolm-context/src/gate.rs``,
 ``grounding.rs``) onto the ds-ocr substrate, using only the existing
 ``hllset_py`` lattice operations.
@@ -72,18 +78,19 @@ class GroundingConfig:
 class GroundingReport:
     """Grounding verdict for a response against the measured context.
 
-    Coverage/overlap is **one measurement**, carried here in two
-    representations of the same quantity:
+    The report carries **two grounding steps in two different spaces**
+    (STANDARD.md §10.7). Tokens and HLLSets never cross directly — the only
+    morphisms are ingest (tokens → HLLSet) and materialize (HLLSet → tokens).
 
-    - ``tau``/``rho`` — the *exact* form: per-encoding LUT membership over the
-      response list (``tau = |response ∩ LUT| / |response|``,
-      ``rho = 1 - tau``).  Zero leak, zero false negatives.
-    - ``r_link_popcount`` — the *integer* (FPGA-native) form of the same
-      intersection: ``popcount(context ∩ response)``.  The float BSS τ/ρ is
-      the same quantity normalised by cardinality (STANDARD.md §4.4).
+    1. Hallucination test — **token space**: per-encoding LUT membership over
+       the response list (``tau = |response ∩ LUT| / |response|``,
+       ``rho = 1 - tau``; ``flagged`` = the never-measured encodings).  Zero
+       leak, zero false negatives (the exact-LUT forward map).
 
-    ``flagged`` lists the never-measured encodings (the one-sided hallucination
-    evidence).
+    2. Context comparison — **HLLSet space**: the R-link
+       ``R = context ∩ response`` (``r_link_popcount`` = popcount(R), the
+       FPGA-native integer) and BSS τ/ρ, the same intersection normalised by
+       cardinality (§4.4).
     """
     tau: float = 1.0
     rho: float = 0.0
