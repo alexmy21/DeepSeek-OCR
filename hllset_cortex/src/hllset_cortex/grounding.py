@@ -72,14 +72,18 @@ class GroundingConfig:
 class GroundingReport:
     """Grounding verdict for a response against the measured context.
 
-    ``tau``/``rho`` are the per-encoding exact-LUT coverage / rejection over
-    the *response encoding list* (the EWM-nanoLM ``recommend`` semantics):
-        tau = |response ∩ LUT| / |response|
-        rho = |response \\ LUT| / |response|  = 1 - tau
+    Coverage/overlap is **one measurement**, carried here in two
+    representations of the same quantity:
 
-    ``r_link_popcount`` is the R-link weight (topological intersection),
-    the architectural primary per STANDARD.md §4.4.  BSS τ/ρ is the scalar
-    convergence signal, kept for reporting.
+    - ``tau``/``rho`` — the *exact* form: per-encoding LUT membership over the
+      response list (``tau = |response ∩ LUT| / |response|``,
+      ``rho = 1 - tau``).  Zero leak, zero false negatives.
+    - ``r_link_popcount`` — the *integer* (FPGA-native) form of the same
+      intersection: ``popcount(context ∩ response)``.  The float BSS τ/ρ is
+      the same quantity normalised by cardinality (STANDARD.md §4.4).
+
+    ``flagged`` lists the never-measured encodings (the one-sided hallucination
+    evidence).
     """
     tau: float = 1.0
     rho: float = 0.0

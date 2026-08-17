@@ -7,13 +7,15 @@ content-addressed HLLSet (the `o:` original). The whole-document HLLSet is a
 **view** (`v:`), the union of the page atoms — computed on demand, never
 persisted separately.
 
-Two relevance primitives are in play (STANDARD.md §4.4):
+Coverage/overlap is **one measurement**, carried here in two representations
+of the same quantity (STANDARD.md §4.4):
 
-- **R-link** (topological intersection + popcount) is the *FPGA-native*
-  primitive — single-cycle AND + popcount, no division. It is kept for FPGA
-  compatibility and reported as ``weight`` (an integer bit count).
-- **BSS τ/ρ** (float inclusion/exclusion) is the *measurement* used here on
-  CPU, gated exactly as the BSS morphism in hllset-core:
+- **R-link** (topological intersection + popcount) — the *integer*,
+  FPGA-native form (single-cycle AND + popcount, no division). Reported as
+  ``weight``.
+- **BSS τ/ρ** (float inclusion/exclusion) — the *normalised* form, used as
+  the measurement here on CPU and gated exactly as the BSS morphism in
+  hllset-core:
 
       τ = |page ∩ query| / |query|   (coverage — the ranking key)
       ρ = |page \\ query| / |query|  (novelty — the precision gate)
