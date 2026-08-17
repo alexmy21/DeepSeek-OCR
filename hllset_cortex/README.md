@@ -49,11 +49,12 @@ Built directly on hllset-next per STANDARD.md. Zero caal-llm code.
 
 | Layer | Crate | Role |
 | ------- | ------- | ------ |
-| Python config | `domain.py` | Tokenizer configuration for ds-ocr encoding IDs |
+| Python config | `domain.py` | Tokenizer configuration + `tid{n}` token definition + `hllset_from_ids` |
 | Python pipeline | `filter.py`, `pipeline.py` | Filter orchestration, gate_TF HLLSet, BPE interface |
 | Python grounding | `grounding.py` | Exact-LUT hallucination test, τ/ρ + R-link (Part X §10.7) |
 | Python temporal | `temporal.py` | DRN decomposition, L0–L6 temporal pyramid, feeder (§4.2–4.3, §10.8) |
-| Python search | `search.py` | Page-granular retrieval: page atoms (`o:`) + document view (`v:`), R-link ranking (§4.4) |
+| Python search | `search.py` | Page-granular retrieval: page atoms (`o:`) + document view (`v:`), BSS τ/ρ + R-link (§4.4) |
+| Python lattice | `lattice.py` | The EWM lattice: submits every observation (pages *and* queries) to LUT + DRN + pyramid |
 | Rust bindings | `hllset_py` (crates/) | PyO3 wrapper: HLLSet, TokenLut, Tokenizer, materialize |
 | Rust core (vendored) | hllset-core, hllset-dsl | HLLSet algebra, MurmurHash3, standard tokenizer |
 
@@ -113,7 +114,7 @@ Both environments have hllset-cortex installed (setup.sh installs into both).
 | `08_holographic_memory.ipynb` | Temporal pyramid: pages → chapters → books → holographic memory |
 | `prove_ewm_grounding.py` | Real ds-OCR → HLLSet cortex → grounding (fidelity + one-sided grounding) |
 | `phase7_ewm_llm_loop.py` | **Phase 7**: EWM↔LLM loop — exact-LUT gate, τ/ρ + R-link, DRN, L0–L6 pyramid, feeder |
-| `search_page_level.py` | Page-granular semantic search: page atoms + document view, R-link ranking resolves to the page |
+| `search_page_level.py` | Page-granular search: query → HLLSet → submitted to the lattice, then BSS τ/ρ ranking resolves to the page |
 
 ## Key Properties (IICA)
 

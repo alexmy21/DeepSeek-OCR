@@ -35,7 +35,13 @@ Reference docs:
     - DESIGN.md (this module's design)
 """
 
-from hllset_cortex.domain import default_tokenizer, encoding_tokenizer, debruijn_tokenizer
+from hllset_cortex.domain import (
+    default_tokenizer,
+    encoding_tokenizer,
+    debruijn_tokenizer,
+    tid,
+    hllset_from_ids,
+)
 from hllset_cortex.filter import HLLSetFilter, FilterResult, FilterStats
 from hllset_cortex.pipeline import OCRPipeline, PipelineResult, GateInfo
 from hllset_cortex.grounding import (
@@ -60,11 +66,15 @@ from hllset_cortex.search import (
     bss_rho,
     search,
 )
+from hllset_cortex.lattice import Lattice
 
 __all__ = [
-    # Tokenizer config
+    # Tokenizer config + token definition (§10.3)
     "default_tokenizer",
     "encoding_tokenizer",
+    "debruijn_tokenizer",
+    "tid",
+    "hllset_from_ids",
     # Filter
     "HLLSetFilter",
     "FilterResult",
@@ -92,4 +102,6 @@ __all__ = [
     "SearchHit",
     "bss_rho",
     "search",
+    # Lattice (submit observations + search)
+    "Lattice",
 ]

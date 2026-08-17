@@ -78,3 +78,22 @@ def debruijn_tokenizer(
         .pad(start.encode(), end.encode())
         .ngrams(2, 2)
     )
+
+
+def tid(encoding_id: int) -> str:
+    """Encoding ID ``n`` in the real ds-ocr format ``tid{n}`` (STANDARD.md §10.3).
+
+    This is the token definition: the id-identity invariant says the ``n`` in
+    ``tid{n}`` is the same integer that indexes ``wte[n]`` / ``lm_head[:, n]``.
+    """
+    return f"tid{encoding_id}"
+
+
+def hllset_from_ids(encoding_ids) -> hllset_py.HLLSet:
+    """Convert a sequence of encoding IDs to their HLLSet fingerprint.
+
+    This is the "convert the query to an HLLSet" step — the same function
+    used for pages and for search queries, so both are citizens of the same
+    lattice.
+    """
+    return hllset_py.HLLSet.from_tokens([tid(i) for i in encoding_ids])
