@@ -7,10 +7,25 @@ content-addressed HLLSet (the `o:` original). The whole-document HLLSet is a
 **view** (`v:`), the union of the page atoms — computed on demand, never
 persisted separately.
 
-Because the atoms are individually addressable, a query resolves **down to the
-page** via the R-link (topological intersection, STANDARD.md §4.4): rank pages
-by ``popcount(query ∩ page)``. BSS τ is reported as the scalar signal, not the
-primary ranking key.
+Two relevance primitives are in play (STANDARD.md §4.4):
+
+- **R-link** (topological intersection + popcount) is the *FPGA-native*
+  primitive — single-cycle AND + popcount, no division. It is kept for FPGA
+  compatibility and reported as ``weight`` (an integer bit count).
+- **BSS τ/ρ** (float inclusion/exclusion) is the *measurement* used here on
+  CPU, gated exactly as the BSS morphism in hllset-core:
+
+      τ = |page ∩ query| / |query|   (coverage — the ranking key)
+      ρ = |page \\ query| / |query|  (novelty — the precision gate)
+
+  A page is a hit iff ``τ ≥ τ_min`` and ``ρ ≤ ρ_max`` (and, for FPGA compat,
+  ``weight ≥ min_weight``).  Pages are ranked by τ descending.
+
+Note on ρ: because it is normalised by |query|, it exceeds 1 whenever a page
+holds more non-query content than the query itself. So the ρ gate is the
+precision signal that separates a *clean* hit from a *noisy* hit; it is most
+meaningful when the compared sets are comparable in size (the
+response-vs-context regime, §3.6).  ``rho_max`` is therefore opt-in here.
 """
 
 from dataclasses import dataclass, field
@@ -55,40 +70,74 @@ class Document:
 
 
 @dataclass
+class SearchConfig:
+    """Search gates — the BSS morphism thresholds plus the FPGA-compat R-link
+    threshold.
+
+    - ``tau_min``: minimum BSS inclusion (coverage of the query by a page).
+    - ``rho_max``: maximum BSS exclusion (novelty / precision). Loose enough
+      by default not to mask partial matches.
+    - ``min_weight``: minimum R-link popcount — the FPGA-native gate.
+    """
+
+    tau_min: float = 0.0
+    rho_max: float = 1.0
+    min_weight: int = 1
+
+
+@dataclass
 class SearchHit:
     """One ranked page match.
 
-    ``weight`` is the R-link popcount — the architectural primary (§4.4).
-    ``tau`` is the BSS inclusion ``|page ∩ query| / |query|`` — the fraction of
-    the query covered by this page (the scalar convergence signal).
+    ``tau`` is the BSS inclusion (coverage) — the measurement and ranking key.
+    ``rho`` is the BSS exclusion (novelty) — the precision gate.
+    ``weight`` is the R-link popcount — the FPGA-native primitive, kept for
+    compatibility.
     """
 
     page_id: str
     key: str
-    weight: int
     tau: float
+    rho: float
+    weight: int
 
     def __repr__(self) -> str:
-        return f"SearchHit({self.page_id}, weight={self.weight}, tau={self.tau:.3f})"
+        return (
+            f"SearchHit({self.page_id}, tau={self.tau:.3f}, "
+            f"rho={self.rho:.3f}, weight={self.weight})"
+        )
+
+
+def bss_rho(a: hllset_py.HLLSet, b: hllset_py.HLLSet) -> float:
+    """BSSρ exclusion ``|a \\ b| / |b|`` — mirrors hllset-core::bss_exclusion.
+
+    The ``hllset_py`` binding does not yet expose ``bss_exclusion``, so it is
+    reconstructed from the exposed ``difference`` + ``cardinality``.
+    """
+    b_card = b.cardinality()
+    if b_card == 0.0:
+        return 0.0
+    return min(1.0, a.difference(b).cardinality() / b_card)
 
 
 def search(
-    query: hllset_py.HLLSet, doc: Document, min_weight: int = 1
+    query: hllset_py.HLLSet, doc: Document, config: Optional[SearchConfig] = None
 ) -> List[SearchHit]:
-    """Rank the document's pages by R-link weight against the query.
+    """Rank the document's pages against the query.
 
-    R-link is the primary relevance score: ``R = query ∩ page``,
-    ``weight = popcount(R)`` (§4.4).  Pages sharing fewer than ``min_weight``
-    bits with the query are dropped — the default (1) returns only pages that
-    actually overlap the query.  The rest are returned highest-weight first.
+    Measurement (BSS, CPU): rank by τ = |page ∩ query| / |query|, and apply
+    the morphism gates ``τ ≥ tau_min`` and ``ρ ≤ rho_max``.  The R-link
+    popcount is still computed (FPGA compat) and gated by ``min_weight``.
     """
+    cfg = config or SearchConfig()
     hits: List[SearchHit] = []
     for page in doc.pages:
         r = query.intersection(page.hllset)
         weight = r.popcount()
-        if weight < min_weight:
-            continue
         tau = page.hllset.bss_inclusion(query)
-        hits.append(SearchHit(page.page_id, page.key, weight, tau))
-    hits.sort(key=lambda h: h.weight, reverse=True)
+        rho = bss_rho(page.hllset, query)
+        if tau < cfg.tau_min or rho > cfg.rho_max or weight < cfg.min_weight:
+            continue
+        hits.append(SearchHit(page.page_id, page.key, tau, rho, weight))
+    hits.sort(key=lambda h: h.tau, reverse=True)
     return hits

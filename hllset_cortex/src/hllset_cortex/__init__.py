@@ -55,7 +55,9 @@ from hllset_cortex.temporal import (
 from hllset_cortex.search import (
     Document,
     PageAtom,
+    SearchConfig,
     SearchHit,
+    bss_rho,
     search,
 )
 
@@ -86,6 +88,8 @@ __all__ = [
     # Page-granular search (§4.4)
     "Document",
     "PageAtom",
+    "SearchConfig",
     "SearchHit",
+    "bss_rho",
     "search",
 ]

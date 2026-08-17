@@ -81,6 +81,21 @@ HLLSet intersection at the lattice level — a **bit-level indirect filter**.
 - Gate never changes at runtime; rebuilt on vocabulary update
 - Per STANDARD.md §2.2: akin to `system:global_1`
 
+The sketch gate is a **tunable approximation**, not an exact filter. Its leak
+has two sources, both tunable:
+
+| Source | Tuning |
+| --- | --- |
+| Hash collision (64-bit MurmurHash3) | widen the hash 64 → 128 bits |
+| Bootstrap order (3-gram / 3-seed) | increase n-grams / seeds |
+
+The "~10⁻⁵" figure holds in the *sparse* multi-gram regime, where an invalid
+ID must survive several independent position intersections. It breaks under
+**saturation**: a full-vocabulary single-seed gate saturates the 32,768-bit
+sketch, the collisions become correlated, and the leak rises to ~97% (the
+STANDARD.md Appendix A finding). Membership in that regime therefore uses the
+**exact-LUT forward map** (`grounding.py::exact_known`), not the sketch.
+
 ### HLLSet (32,768 bits, fixed)
 
 The structural fingerprint. Every encoding ID is hashed via MurmurHash3
