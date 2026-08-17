@@ -2,17 +2,21 @@
 """
 Grounding — the EWM<->LLM validation step (Part X §10.7, §3.6).
 
-The response is validated against the measured state in two one-sided steps,
-per STANDARD.md Part X:
+The response is validated against the measured state in two one-sided
+diagnoses of hallucination, per STANDARD.md Part X:
 
-    1. Hallucination test (exact-LUT).  A never-measured encoding is flagged.
-    2. Context comparison (R-link).      R = S(t) ∩ response, weight = popcount(R).
+    1. Token hallucination (diagnosed by the LUT).  An encoding that never
+       arrived through ingestion is unknown — the LUT flags it.  The LUT never
+       hallucinates; the HLLSet the LLM produces does.
+    2. Structural hallucination (diagnosed by BSS ρ).  Even when every token
+       is known, the response may depart structurally from the context; the
+       BSS ρ gate (novelty) flags that.
 
-The two steps live in **different spaces**: the hallucination test is
-token-space (exact-LUT membership), the context comparison is HLLSet-space
-(structural). Tokens and HLLSets never cross directly — ingest (tokens →
-HLLSet, via hash + bootstrap) and materialize (HLLSet → tokens) are the only
-morphisms between them.
+The two diagnoses live in **different spaces**: token hallucination is
+token-space (exact-LUT membership over encodings), structural hallucination is
+HLLSet-space (BSS ρ over sketches). Tokens and HLLSets never cross directly —
+ingest (tokens → HLLSet, via hash + bootstrap) and materialize (HLLSet →
+tokens) are the only morphisms between them.
 
 This module ports the EWM-nanoLM findings (``nanolm-context/src/gate.rs``,
 ``grounding.rs``) onto the ds-ocr substrate, using only the existing
@@ -30,6 +34,8 @@ from dataclasses import dataclass, field
 from typing import List, Optional, Tuple
 
 import hllset_py
+
+from hllset_cortex.search import bss_rho
 
 
 # ── Exact-LUT membership (the corrected gate) ───────────────────────────
@@ -69,31 +75,36 @@ def has_hallucination(response_hllset: hllset_py.HLLSet, lut: hllset_py.TokenLut
 
 @dataclass
 class GroundingConfig:
-    """Grounding thresholds (mirrors nanolm-context::GroundingConfig)."""
+    """Grounding thresholds.
+
+    - ``tau_min`` / ``rho_max`` gate the **token** diagnosis (LUT membership).
+    - ``structural_rho_max`` gates the **structural** diagnosis (BSS ρ novelty).
+    """
     tau_min: float = 0.8
     rho_max: float = 0.2
+    structural_rho_max: float = 0.2
 
 
 @dataclass
 class GroundingReport:
     """Grounding verdict for a response against the measured context.
 
-    The report carries **two grounding steps in two different spaces**
-    (STANDARD.md §10.7). Tokens and HLLSets never cross directly — the only
-    morphisms are ingest (tokens → HLLSet) and materialize (HLLSet → tokens).
+    Carries **two diagnoses of hallucination in two different spaces**
+    (STANDARD.md §10.7):
 
-    1. Hallucination test — **token space**: per-encoding LUT membership over
-       the response list (``tau = |response ∩ LUT| / |response|``,
-       ``rho = 1 - tau``; ``flagged`` = the never-measured encodings).  Zero
-       leak, zero false negatives (the exact-LUT forward map).
+    1. Token hallucination — **token space**, diagnosed by the LUT: ``flagged``
+       is the encodings that never arrived through ingestion (unknown to the
+       LUT); ``tau``/``rho`` are the known/unknown fractions. The LUT never
+       hallucinates — it only reports; the HLLSet the LLM produces does.
 
-    2. Context comparison — **HLLSet space**: the R-link
-       ``R = context ∩ response`` (``r_link_popcount`` = popcount(R), the
-       FPGA-native integer) and BSS τ/ρ, the same intersection normalised by
-       cardinality (§4.4).
+    2. Structural hallucination — **HLLSet space**, diagnosed by BSS ρ:
+       ``structural_rho = |response \\ context| / |context|`` is how far the
+       response departs from the measured state even when every token is known.
+       ``r_link_popcount`` is the same intersection as the FPGA-native integer.
     """
     tau: float = 1.0
     rho: float = 0.0
+    structural_rho: float = 0.0
     grounded: bool = True
     flagged: List[str] = field(default_factory=list)
     r_link_popcount: int = 0
@@ -102,8 +113,8 @@ class GroundingReport:
     def __repr__(self) -> str:
         return (
             f"GroundingReport(tau={self.tau:.3f}, rho={self.rho:.3f}, "
-            f"grounded={self.grounded}, flagged={len(self.flagged)}, "
-            f"r_link={self.r_link_popcount})"
+            f"srho={self.structural_rho:.3f}, grounded={self.grounded}, "
+            f"flagged={len(self.flagged)}, r_link={self.r_link_popcount})"
         )
 
 
@@ -115,31 +126,38 @@ def grounding_report(
 ) -> GroundingReport:
     """Validate ``response_ids`` against the measured state (``context_hllset`` + ``lut``).
 
-    Two one-sided steps, per §10.7:
-        1. exact-LUT hallucination test over the response encoding list
-           (``flagged`` = never-measured encodings),
-        2. R-link context comparison (``R = S(t) ∩ response``).
+    Two one-sided diagnoses, per §10.7:
+        1. token hallucination — the LUT flags encodings that never arrived
+           through ingestion (``flagged``),
+        2. structural hallucination — BSS ρ measures how far the response
+           departs from the context (``structural_rho``).
 
     Read-only: it never mutates the LUT or the lattice.
     """
     cfg = config or GroundingConfig()
 
-    # 1. Hallucination test — per-encoding exact-LUT coverage.
+    # 1. Token hallucination — the LUT flags encodings never ingested.
     n = len(response_ids)
     in_lut = sum(1 for t in response_ids if exact_known(lut, t))
     tau = in_lut / n if n else 1.0
     rho = (n - in_lut) / n if n else 0.0
     flagged = [t for t in response_ids if not exact_known(lut, t)]
 
-    # 2. R-link — topological intersection (the architectural primary).
+    # 2. Structural hallucination — BSS ρ (novelty) + R-link (FPGA-native).
     response_hllset = hllset_py.HLLSet.from_tokens(response_ids)
     r_link = context_hllset.intersection(response_hllset)
+    structural_rho = bss_rho(response_hllset, context_hllset)
 
-    grounded = tau >= cfg.tau_min and rho <= cfg.rho_max
+    grounded = (
+        tau >= cfg.tau_min
+        and rho <= cfg.rho_max
+        and structural_rho <= cfg.structural_rho_max
+    )
 
     return GroundingReport(
         tau=tau,
         rho=rho,
+        structural_rho=structural_rho,
         grounded=grounded,
         flagged=flagged,
         r_link_popcount=r_link.popcount(),

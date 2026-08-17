@@ -86,7 +86,7 @@ print(f"measured context: popcount={context.popcount()}, "
 
 print()
 print("=" * 70)
-print("STEP 3  grounding: hallucination test + τ/ρ + R-link")
+print("STEP 3  grounding: token hallucination (LUT) + structural hallucination (BSS ρ)")
 print("=" * 70)
 cfg = GroundingConfig(tau_min=0.8, rho_max=0.2)
 
@@ -110,6 +110,16 @@ resp_b_hll = hllset_of([100, 101, V + 7, V + 8])
 flagged_pos = hallucinated_positions(resp_b_hll, measure_lut)
 print(f"  hallucinated positions in B: {len(flagged_pos)} (never-measured)")
 assert flagged_pos, "novel ids must yield never-measured positions"
+
+# Response C — every token is known to the LUT, but one id departs from the
+# *current* context: token-grounded, structurally novel.  The two diagnoses
+# are distinct — the LUT flags token hallucination, BSS ρ flags structural.
+sub_context = hllset_of([100, 101])   # the current window
+resp_c = [tid(100), tid(200)]         # 200 is known, but not in the window
+report_c = grounding_report(sub_context, resp_c, measure_lut, cfg)
+print(f"C (known, out-of-window): {report_c}")
+assert report_c.flagged == [], "no token hallucination: both tokens are known"
+assert report_c.structural_rho > 0.0, "structural hallucination: 200 departs"
 
 print()
 print("=" * 70)
