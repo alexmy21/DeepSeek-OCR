@@ -38,6 +38,20 @@ Reference docs:
 from hllset_cortex.domain import default_tokenizer, encoding_tokenizer, debruijn_tokenizer
 from hllset_cortex.filter import HLLSetFilter, FilterResult, FilterStats
 from hllset_cortex.pipeline import OCRPipeline, PipelineResult, GateInfo
+from hllset_cortex.grounding import (
+    exact_known,
+    hallucinated_positions,
+    has_hallucination,
+    GroundingConfig,
+    GroundingReport,
+    grounding_report,
+)
+from hllset_cortex.temporal import (
+    DRN,
+    TemporalPyramid,
+    drn,
+    emergent_vocab,
+)
 
 __all__ = [
     # Tokenizer config
@@ -51,4 +65,16 @@ __all__ = [
     "OCRPipeline",
     "PipelineResult",
     "GateInfo",
+    # Grounding (Part X §10.7)
+    "exact_known",
+    "hallucinated_positions",
+    "has_hallucination",
+    "GroundingConfig",
+    "GroundingReport",
+    "grounding_report",
+    # Temporal + DRN (§4.2–4.3, §10.8)
+    "DRN",
+    "TemporalPyramid",
+    "drn",
+    "emergent_vocab",
 ]

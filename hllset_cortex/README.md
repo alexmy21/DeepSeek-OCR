@@ -51,6 +51,8 @@ Built directly on hllset-next per STANDARD.md. Zero caal-llm code.
 | ------- | ------- | ------ |
 | Python config | `domain.py` | Tokenizer configuration for ds-ocr encoding IDs |
 | Python pipeline | `filter.py`, `pipeline.py` | Filter orchestration, gate_TF HLLSet, BPE interface |
+| Python grounding | `grounding.py` | Exact-LUT hallucination test, τ/ρ + R-link (Part X §10.7) |
+| Python temporal | `temporal.py` | DRN decomposition, L0–L6 temporal pyramid, feeder (§4.2–4.3, §10.8) |
 | Rust bindings | `hllset_py` (crates/) | PyO3 wrapper: HLLSet, TokenLut, Tokenizer, materialize |
 | Rust core (vendored) | hllset-core, hllset-dsl | HLLSet algebra, MurmurHash3, standard tokenizer |
 
@@ -108,6 +110,8 @@ Both environments have hllset-cortex installed (setup.sh installs into both).
 | `01_ocr_hllset_pipeline.ipynb` | Validation pipeline with simulated encoding IDs (9 tests) |
 | `01_ocr_hllset_pipeline_real.ipynb` | **Extended**: all 9 tests + Section 10 with real DeepSeek-OCR |
 | `08_holographic_memory.ipynb` | Temporal pyramid: pages → chapters → books → holographic memory |
+| `prove_ewm_grounding.py` | Real ds-OCR → HLLSet cortex → grounding (fidelity + one-sided grounding) |
+| `phase7_ewm_llm_loop.py` | **Phase 7**: EWM↔LLM loop — exact-LUT gate, τ/ρ + R-link, DRN, L0–L6 pyramid, feeder |
 
 ## Key Properties (IICA)
 
