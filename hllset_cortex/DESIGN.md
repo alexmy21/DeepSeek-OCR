@@ -285,6 +285,26 @@ ds-ocr and hllset-cortex are **totally independent**:
 The integration point: ds-ocr encoder → encoding IDs → hllset-cortex →
 restored IDs → ds-ocr decoder. hllset-cortex is a black box at this boundary.
 
+### The encoder is bypassable — the voc-Gate is the correctness boundary
+
+Because only encoding IDs cross the boundary (STANDARD.md §10.1) and EWM is
+encoding-agnostic (§10.9 "one EWM, many LLMs"), the ds-ocr vision encoder is
+**not required**: encoding IDs may come from *any* source (another tokenizer,
+a simulated stream, a general LLM). The safety net that makes this safe is the
+**vocabulary gate**:
+
+- a *wrong* (out-of-vocabulary) id **can** land in the TokenLUT — the LUT is
+  never gated, everything measured is stored (TF stored pre-gate);
+- but it is **filtered at materialization** (rank derived post-gate), so it
+  **never reaches the ds-ocr decoder**.
+
+This guarantee is **exact only for the exact-LUT gate** (`grounding.py::
+exact_known`, 0 leak / 0 false negatives). The single-HLLSet sketch gate
+leaks ~97% of out-of-vocabulary ids under saturation (Appendix A), which is
+why the exact-LUT forward map is the gate, not the sketch. With it, feeding
+arbitrary ids is safe — invalid ids are measured but never expressed to the
+decoder — so the real vision-encoder plumbing can be skipped.
+
 ### Real Encoding ID Format
 
 With local DeepSeek-OCR, encoding IDs are **BPE token IDs** from the
