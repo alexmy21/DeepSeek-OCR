@@ -141,6 +141,34 @@ book = ∪{chapter₁, chapter₂, ...}
 The lattice enables structural queries: BSS similarity between pages,
 R-link intersections between chapters, rank-based relevance over time.
 
+### Document decomposition — the atom granularity
+
+A document is still **one HLLSet** — but that HLLSet is the **union of its
+parts** (pages): a *view* over the parts (`v:` prefix, ephemeral), not a
+separately-persisted object. The parts are the persisted, content-addressed,
+individually-addressable **atoms** (`o:` originals). What varies is only
+**what the atoms are**:
+
+| Decomposition | Project | Atom (persisted, `o:`) | View (union, `v:`) |
+| --- | --- | --- | --- |
+| **Embedding** | EWM-nanoLM (§10.5/10.6) | `embed-HLLSet(wte[t_i])` — a token's embedding neighborhood | `doc = ⋃ embed-HLLSet(wte[t_i])` |
+| **Page** | hllset-cortex (ds-ocr) | `page_i → HLLSet_i` | `chapter = ⋃ pages`, `book = ⋃ chapters` |
+
+This is what makes EWM a **semantic search engine**: because the atoms are
+individually content-addressed, a match resolves **down to the page**, not
+just to the whole document. The decomposition therefore sets the
+**granularity of retrieval** — finer atoms ⇒ more precise search. The page
+atom is the superior choice here: a scanned page is a natural, physical
+measurement unit, so no synthetic embedding neighborhood (and no LLM) is
+needed.
+
+The rule (STANDARD.md §5.7 "bridges are not special"): **keep what works, and
+adopt a domain-native atom when one serves better in a special environment.**
+Embedding stays for general LLM use; page replaces it in OCR. Each new domain
+may bring its own atom (image patches, audio frames, DNA k-mers) with zero
+change to the downstream algebra — gate, LUT, grounding, DRN, and the
+temporal pyramid all consume HLLSets regardless of atom.
+
 ## Usage Scenario: PDF Book Scanning
 
 ```text

@@ -52,6 +52,12 @@ from hllset_cortex.temporal import (
     drn,
     emergent_vocab,
 )
+from hllset_cortex.search import (
+    Document,
+    PageAtom,
+    SearchHit,
+    search,
+)
 
 __all__ = [
     # Tokenizer config
@@ -77,4 +83,9 @@ __all__ = [
     "TemporalPyramid",
     "drn",
     "emergent_vocab",
+    # Page-granular search (§4.4)
+    "Document",
+    "PageAtom",
+    "SearchHit",
+    "search",
 ]
