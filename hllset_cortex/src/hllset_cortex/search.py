@@ -113,6 +113,16 @@ class SearchHit:
 def bss_rho(a: hllset_py.HLLSet, b: hllset_py.HLLSet) -> float:
     """BSSρ exclusion ``|a \\ b| / |b|`` — mirrors hllset-core::bss_exclusion.
 
+    ``|·|`` is the HLLSet **cardinality** (the Horvitz-Thompson estimate),
+    derived from the distribution of set bits in the fixed 32,768-bit vector —
+    not the raw popcount. The ratio is therefore only meaningful when ``a`` and
+    ``b`` are at the **same scale** (comparable cardinality): ``|a \\ b|`` is
+    bounded by ``|a|`` but normalised by ``|b|``, so a man-vs-elephant
+    cardinality mismatch swamps the signal. Use it between comparably-sized
+    sets; for a small response against a large context, a response-normalised
+    novelty (``|response \\ context| / |response|``) is the scale-appropriate
+    form.
+
     The ``hllset_py`` binding does not yet expose ``bss_exclusion``, so it is
     reconstructed from the exposed ``difference`` + ``cardinality``.
     """

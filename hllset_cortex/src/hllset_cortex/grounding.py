@@ -101,6 +101,10 @@ class GroundingReport:
        ``structural_rho = |response \\ context| / |context|`` is how far the
        response departs from the measured state even when every token is known.
        ``r_link_popcount`` is the same intersection as the FPGA-native integer.
+
+    BSS ρ is only meaningful when ``response`` and ``context`` are at the same
+    cardinality scale (see ``search.bss_rho``) — ``|·|`` is the HLLSet
+    cardinality, a function of the '1'-bit distribution in the fixed vector.
     """
     tau: float = 1.0
     rho: float = 0.0
