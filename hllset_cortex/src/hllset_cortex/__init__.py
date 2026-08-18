@@ -66,7 +66,7 @@ from hllset_cortex.search import (
     bss_rho,
     search,
 )
-from hllset_cortex.lattice import Lattice
+from hllset_cortex.lattice import HistoryEntry, Lattice, Precedent
 
 __all__ = [
     # Tokenizer config + token definition (§10.3)
@@ -102,6 +102,8 @@ __all__ = [
     "SearchHit",
     "bss_rho",
     "search",
-    # Lattice (submit observations + search)
+    # Lattice (submit observations + search + precedents)
+    "HistoryEntry",
     "Lattice",
+    "Precedent",
 ]

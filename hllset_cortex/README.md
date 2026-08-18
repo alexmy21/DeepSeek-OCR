@@ -54,7 +54,7 @@ Built directly on hllset-next per STANDARD.md. Zero caal-llm code.
 | Python grounding | `grounding.py` | Exact-LUT hallucination test, τ/ρ + R-link (Part X §10.7) |
 | Python temporal | `temporal.py` | DRN decomposition, L0–L6 temporal pyramid, feeder (§4.2–4.3, §10.8) |
 | Python search | `search.py` | Page-granular retrieval: page atoms (`o:`) + document view (`v:`), BSS τ/ρ + R-link (§4.4) |
-| Python lattice | `lattice.py` | The EWM lattice: submits every observation (pages *and* queries) to LUT + DRN + pyramid |
+| Python lattice | `lattice.py` | The EWM lattice: submits every observation (pages *and* queries) to LUT + DRN + pyramid; `precedents` dives into history for decision-making reference (§4.4) |
 | Rust bindings | `hllset_py` (crates/) | PyO3 wrapper: HLLSet, TokenLut, Tokenizer, materialize |
 | Rust core (vendored) | hllset-core, hllset-dsl | HLLSet algebra, MurmurHash3, standard tokenizer |
 

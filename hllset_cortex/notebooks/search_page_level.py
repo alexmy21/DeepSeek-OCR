@@ -113,4 +113,16 @@ assert [h.key for h in again] == [h.key for h in hits]
 print("  re-running the query returns the same ranked keys")
 
 print()
+print("=" * 70)
+print("STEP 8  precedents: dive into the history for decision-making reference")
+print("=" * 70)
+# Beyond the shallow response-vs-context grounding: surface prior observations
+# (pages *and* past queries) that resemble this query, as reference.
+precs = lattice.precedents(q_clean, top_k=5)
+for p in precs:
+    print(f"  {p}")
+assert precs[0].weight == 2 and precs[0].label == "page_3"
+assert any(p.label.startswith("query_") for p in precs), "past queries are precedents too"
+
+print()
 print("SEARCH (query submitted to lattice) COMPLETE — all assertions passed")
