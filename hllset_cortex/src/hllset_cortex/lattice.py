@@ -55,8 +55,9 @@ class HistoryEntry:
 class Precedent:
     """A prior observation retrieved from the history.
 
-    ``weight`` is the R-link popcount ``|query ∩ entry|`` — the §4.4 relevance
-    score; ``tau`` is the BSS coverage ``|entry ∩ query| / |query|``.
+    ``tau`` is the BSS coverage ``|entry ∩ query| / |query|`` — the ranking
+    key (the measurement, same as ``search``). ``weight`` is the R-link
+    popcount ``|query ∩ entry|`` — the FPGA-native form, reported for compat.
     """
     label: str
     key: str
@@ -135,12 +136,14 @@ class Lattice:
         top_k: Optional[int] = None,
         min_weight: int = 1,
     ) -> List[Precedent]:
-        """Retrieve prior observations that resemble ``query``, ranked by R-link
-        weight (``popcount(query ∩ entry)``) — the §4.4 feedback gate.
+        """Retrieve prior observations that resemble ``query``, ranked by BSS τ
+        (coverage) — the same measurement ``search`` uses, aimed at the history
+        instead of the document (§4.4 feedback gate).
 
         This is the deep step for decision-making: instead of comparing only
         against the current context, dive into the history (every submitted
         page and query) and surface the most similar precedents as reference.
+        The R-link popcount is reported as ``weight`` (the FPGA-native form).
         """
         hits = []
         for entry in self.history:
@@ -149,7 +152,7 @@ class Lattice:
                 continue
             tau = entry.hllset.bss_inclusion(query)
             hits.append(Precedent(entry.label, entry.key, weight, tau))
-        hits.sort(key=lambda h: h.weight, reverse=True)
+        hits.sort(key=lambda h: h.tau, reverse=True)
         if top_k is not None:
             hits = hits[:top_k]
         return hits
