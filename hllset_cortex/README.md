@@ -4,6 +4,9 @@ A **reference implementation** for HLLSet Algebra applications built on
 [hllset-next](https://github.com/SGS_lib/fractal_manifold/hllset-next).
 Receives encoding IDs from ds-OCR's vision encoder, processes them through
 the HLLSet Algebra pipeline, and returns restored encoding IDs for the decoder.
+It is also an **EWM grounding/search engine** for the LLM (STANDARD.md Part X):
+grounding (hallucination diagnostics), page-granular search, and precedent
+retrieval.
 
 ds-ocr and hllset-cortex are **independent modules**. hllset-cortex never
 sees real tokens — only encoding IDs and their hashes.
@@ -43,6 +46,27 @@ Each scanned page produces an HLLSet. Chapters are unions of page HLLSets.
 The book is a union of chapters. After scanning, the book is committed to
 the temporal pyramid creating holographic memory (STANDARD.md §4.2, §4.11).
 
+## EWM Grounding & Search
+
+Beyond encoding restoration, hllset-cortex is an **EWM grounding/search engine**
+for the LLM (STANDARD.md Part X §10.7–10.9). The grounding layer (see
+`notebooks/phase7_ewm_llm_loop.py`, `notebooks/search_page_level.py`, and
+`01_ocr_hllset_pipeline_real.ipynb` §11) provides:
+
+- **Grounding** — two hallucination diagnoses: *token* (the LUT flags an
+  encoding that never arrived through ingestion) and *structural* (BSS ρ flags a
+  response that departs from the context even when every token is known).
+- **Search + localization** — page atoms (`o:`) and a document view (`v:`); a
+  query is submitted to the lattice and ranked by BSS τ, resolving down to the
+  page.
+- **Precedents** — dive into the temporal-pyramid history to surface prior
+  observations (pages *and* queries) as reference for decision-making.
+- **Encoder bypass** — the exact-LUT gate (0 leak / 0 FN) filters
+  out-of-vocabulary ids, so encoding IDs may come from any source.
+
+The boundary is **encoding-agnostic**: two spaces (tokens ↔ HLLSets) connected
+only by *ingest* (tokens → HLLSet) and *materialize* (HLLSet → tokens).
+
 ## Architecture
 
 Built directly on hllset-next per STANDARD.md. Zero caal-llm code.
@@ -51,7 +75,7 @@ Built directly on hllset-next per STANDARD.md. Zero caal-llm code.
 | ------- | ------- | ------ |
 | Python config | `domain.py` | Tokenizer configuration + `tid{n}` token definition + `hllset_from_ids` |
 | Python pipeline | `filter.py`, `pipeline.py` | Filter orchestration, gate_TF HLLSet, BPE interface |
-| Python grounding | `grounding.py` | Exact-LUT hallucination test, τ/ρ + R-link (Part X §10.7) |
+| Python grounding | `grounding.py` | Token + structural hallucination diagnostics (exact-LUT gate + BSS ρ), τ/ρ + R-link (Part X §10.7) |
 | Python temporal | `temporal.py` | DRN decomposition, L0–L6 temporal pyramid, feeder (§4.2–4.3, §10.8) |
 | Python search | `search.py` | Page-granular retrieval: page atoms (`o:`) + document view (`v:`), BSS τ/ρ + R-link (§4.4) |
 | Python lattice | `lattice.py` | The EWM lattice: submits every observation (pages *and* queries) to LUT + DRN + pyramid; `precedents` dives into history for decision-making reference (§4.4) |
@@ -110,7 +134,7 @@ Both environments have hllset-cortex installed (setup.sh installs into both).
 | Notebook | Description |
 | ---------- | ------------- |
 | `01_ocr_hllset_pipeline.ipynb` | Validation pipeline with simulated encoding IDs (9 tests) |
-| `01_ocr_hllset_pipeline_real.ipynb` | **Extended**: all 9 tests + Section 10 with real DeepSeek-OCR |
+| `01_ocr_hllset_pipeline_real.ipynb` | **Extended**: all 9 tests + Section 10 (real DeepSeek-OCR) + Section 11 (grounding, search & localization) |
 | `08_holographic_memory.ipynb` | Temporal pyramid: pages → chapters → books → holographic memory |
 | `prove_ewm_grounding.py` | Real ds-OCR → HLLSet cortex → grounding (fidelity + one-sided grounding) |
 | `phase7_ewm_llm_loop.py` | **Phase 7**: EWM↔LLM loop — exact-LUT gate, τ/ρ + R-link, DRN, L0–L6 pyramid, feeder |
