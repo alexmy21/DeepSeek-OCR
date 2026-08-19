@@ -67,6 +67,27 @@ from hllset_cortex.search import (
     search,
 )
 from hllset_cortex.lattice import HistoryEntry, Lattice, Precedent
+from hllset_cortex.conversation import (
+    START,
+    END,
+    BitAnchors,
+    ContextTop,
+    ConversationContext,
+    Exchange,
+    RestoredConversation,
+    RoundTripReport,
+    SharedBitOrigin,
+    SparseAdjacencyMatrix,
+    TokenIndex,
+    UnfoldedCell,
+    bit_position,
+    build_prompt,
+    build_prompt_from_restored,
+    restore_context,
+    roundtrip_context,
+    roundtrip_exchange,
+    roundtrip_exchange_with_extra_tokens,
+)
 
 __all__ = [
     # Tokenizer config + token definition (§10.3)
@@ -106,4 +127,24 @@ __all__ = [
     "HistoryEntry",
     "Lattice",
     "Precedent",
+    # Conversation context (phase 8)
+    "START",
+    "END",
+    "BitAnchors",
+    "ContextTop",
+    "ConversationContext",
+    "Exchange",
+    "RestoredConversation",
+    "RoundTripReport",
+    "SharedBitOrigin",
+    "SparseAdjacencyMatrix",
+    "TokenIndex",
+    "UnfoldedCell",
+    "bit_position",
+    "build_prompt",
+    "build_prompt_from_restored",
+    "restore_context",
+    "roundtrip_context",
+    "roundtrip_exchange",
+    "roundtrip_exchange_with_extra_tokens",
 ]

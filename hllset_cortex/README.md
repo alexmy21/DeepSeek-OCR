@@ -79,6 +79,7 @@ Built directly on hllset-next per STANDARD.md. Zero caal-llm code.
 | Python temporal | `temporal.py` | DRN decomposition, L0–L6 temporal pyramid, feeder (§4.2–4.3, §10.8) |
 | Python search | `search.py` | Page-granular retrieval: page atoms (`o:`) + document view (`v:`), BSS τ/ρ + R-link (§4.4) |
 | Python lattice | `lattice.py` | The EWM lattice: submits every observation (pages *and* queries) to LUT + DRN + pyramid; `precedents` dives into history for decision-making reference (§4.4) |
+| Python conversation | `conversation.py` | Phase 8: exchange 1/2/3-HLLSet encoding, sparse adjacency matrix, 3-gram De Bruijn restore, prompt materialization, round-trip law |
 | Rust bindings | `hllset_py` (crates/) | PyO3 wrapper: HLLSet, TokenLut, Tokenizer, materialize |
 | Rust core (vendored) | hllset-core, hllset-dsl | HLLSet algebra, MurmurHash3, standard tokenizer |
 
@@ -138,6 +139,7 @@ Both environments have hllset-cortex installed (setup.sh installs into both).
 | `08_holographic_memory.ipynb` | Temporal pyramid: pages → chapters → books → holographic memory |
 | `prove_ewm_grounding.py` | Real ds-OCR → HLLSet cortex → grounding (fidelity + one-sided grounding) |
 | `phase7_ewm_llm_loop.py` | **Phase 7**: EWM↔LLM loop — exact-LUT gate, τ/ρ + R-link, DRN, L0–L6 pyramid, feeder |
+| `phase8_conversation_context.py` | **Phase 8**: conversation context — exchange encoding, adjacency matrix, collision groups, 3-gram De Bruijn restore, round-trip law, prompt materialization |
 | `search_page_level.py` | Page-granular search: query → HLLSet → submitted to the lattice, then BSS τ/ρ ranking resolves to the page |
 
 ## Key Properties (IICA)
