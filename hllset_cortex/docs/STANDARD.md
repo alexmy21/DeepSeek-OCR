@@ -1534,7 +1534,7 @@ HLLSet Algebra application?"
 The mandate has five requirements:
 
 | # | Requirement | Consequence |
-|---|-------------|-------------|
+| --- | ------------- | ------------- |
 | **R1** | **Reference quality.** caal-llm demonstrates best practices in architecture, design, and development. Code that works is not enough — code must be exemplary. | Traits are minimal and well-documented. Crate boundaries are clean. Error handling is explicit. Tests demonstrate patterns for downstream consumers. |
 | **R2** | **Upstream-first prototyping.** When hllset-next lacks a module (e.g., temporal pyramid, bridge crate), caal-llm implements a local prototype, then contributes it upstream once proven. | caal-llm contains `[PROTO]`-marked modules that are candidates for extraction into hllset-next crates (§8.9). |
 | **R3** | **Modular and extensible.** caal-llm defines the standard for domain extensions. Any future domain (sensor data, DNA, audio) must plug in through the same trait boundaries. | Extension traits are first-class (§8.8). The I Ching domain is one implementation of the `Domain` trait — not a special case. |
@@ -1718,7 +1718,7 @@ pub fn init_storage(config: &StorageConfig) -> Result<Arc<dyn Storage>, CaalErro
 **Design rules for the storage layer:**
 
 | Rule | Rationale |
-|------|-----------|
+| ------ | ----------- |
 | Storage is selected by configuration (TOML, env, CLI flag), not by `#[cfg]` | Same binary works with any backend. No recompilation. |
 | Application code receives `Arc<dyn Storage>`, never a concrete type | Adding a backend = adding a variant to the enum + one match arm. Zero changes above this layer. |
 | The storage crate is the **only** crate that imports backend crates | `hllset-storage-redis` is imported only in `caal-storage`. If it's path-blocked, only this crate needs a workaround. |
@@ -1727,7 +1727,7 @@ pub fn init_storage(config: &StorageConfig) -> Result<Arc<dyn Storage>, CaalErro
 **Backend selection guideline:**
 
 | Backend | When to use | Status in hllset-next |
-|---------|------------|----------------------|
+| --------- | ------------ | ---------------------- |
 | `MemoryStorage` | Unit tests, CI, quick experimentation | `[IMPL]` |
 | `IpfrsNative` (sled) | Single-node development, local persistence | `[IMPL]` (path-blocked) |
 | `RedisStorage` | Production, multi-client access, real workloads | `[IMPL]` |
@@ -1822,6 +1822,7 @@ let domains: Vec<Arc<dyn Domain>> = vec![
 ```
 
 The extension standard guarantees:
+
 - `caal-core` never imports `caal-en` (or any domain crate)
 - `caal-pipeline` only knows `Arc<dyn Domain>` — never a concrete type
 - New domains require zero changes to existing crates
@@ -1831,7 +1832,7 @@ The extension standard guarantees:
 When hllset-next specifies a capability but hasn't implemented it (marked
 `[SPEC]` in Part VII), caal-llm follows a three-phase path:
 
-```
+```text
 Phase A: PROTOTYPE in caal-llm
   │  Marked with #[doc = "[PROTO]"] on the module.
   │  Implements the specified behavior from this standard.
@@ -1853,13 +1854,14 @@ Phase C: CONTRIBUTE upstream to hllset-next
 **Current [PROTO] candidates for caal-llm:**
 
 | Module | Maps to hllset-next crate | Priority | Rationale |
-|--------|--------------------------|----------|-----------|
+| -------- | -------------------------- | ---------- | ----------- |
 | `caal-core/src/bridge.rs` | `hllset-bridge` | P0 | Two-pass re-representation is fundamental; caal-llm needs it now |
 | `caal-core/src/rank.rs` | `hllset-ranks` (local subset) | P1 | Five-level rank algebra; currently path-blocked, so local prototype |
 | `caal-core/src/ngram.rs` (3-gram) | `hllset-dsl` extension | P2 | 3-gram structural fingerprinting for cross-domain matching |
 | `caal-pipeline/src/temporal.rs` | `hllset-temporal` | P3 | Per-session temporal tracking; prototype before full pyramid crate |
 
 **Rules for [PROTO] modules:**
+
 1. Must replicate the standard's specification faithfully — no shortcuts
 2. Must have standalone tests (not dependent on caal-llm integration)
 3. Must be documented with the target hllset-next crate name
@@ -1899,7 +1901,7 @@ Phase C: CONTRIBUTE upstream to hllset-next
 ### 8.12 Dependency Policy
 
 | Dependency | Status | Policy |
-|------------|--------|--------|
+| ------------ | -------- | -------- |
 | `hllset-core` | `[IMPL]` usable | **Primary dependency.** All crates depend on this. |
 | `hllset-storage` | `[INACC]` path-blocked | Depend on the **trait**, not the crate. caal-llm defines its own `Storage` re-export that wraps hllset-next's trait once available. |
 | `hllset-storage-redis` | `[IMPL]` | **Production default.** Used via `caal-storage`. The only crate that imports this. |
@@ -1915,7 +1917,7 @@ Phase C: CONTRIBUTE upstream to hllset-next
 When hllset-next progresses, caal-llm upgrades:
 
 | When hllset-next... | caal-llm should... |
-|---------------------|-------------------|
+| --------------------- | ------------------- |
 | Resolves ipfrs-core path dependency | Switch from local [PROTO] to `hllset-ranks` and `hllset-storage` |
 | Implements full prefix taxonomy (o/r/d/n) | Adopt content-addressable D/R/N storage |
 | Ships temporal pyramid crate | Add temporal depth to consultation history |
@@ -1995,7 +1997,7 @@ For developers moving from the old per-topic docs to this standard:
 Loading a LUT with a large external vocabulary (e.g., a 128K BPE tokenizer vocabulary)
 where all tokens have equal TF = 0 or TF = 1 causes **random materialization**.
 Each HLLSet bit position maps to multiple tokens in the LUT, and with equal TFs,
-the highest-TF tie-break is arbitrary. Jaccard drops to ~0.03.
+the TF tie-break is arbitrary. Jaccard drops to ~0.03.
 
 ### The Rule
 
@@ -2003,13 +2005,13 @@ the highest-TF tie-break is arbitrary. Jaccard drops to ~0.03.
 > Three valid initialization states:
 
 | State | Vocabulary source | TF values | When to use |
-|-------|------------------|-----------|-------------|
+| ------- | ------------------ | ----------- | ------------- |
 | **Cold start** | Empty | N/A | New system, no prior knowledge |
 | **Lattice-covered** | Vocabulary extracted from HLLSets already in the current lattice | From materialization TF | System with existing HLLSet corpus |
 | **Donor transfer** | Vocabulary from a donor system's LUT | Copied from donor TF | Deep knowledge transfer between systems |
 
 | State | Vocabulary source | TF values | Result |
-|-------|-----------------|-----------|--------|
+| ------- | ----------------- | ----------- | -------- |
 | **INVALID** | External vocabulary (e.g., tokenizer vocab) | Equal TF (= 0 or = 1) | Random materialization, Jaccard ~0.03 |
 
 ### Refinement of §5.5
