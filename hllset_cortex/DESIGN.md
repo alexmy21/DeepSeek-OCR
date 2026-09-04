@@ -28,7 +28,8 @@ consumes the restored IDs. hllset-cortex never sees real tokens.
 │  ║    → MurmurHash3 → HLLSet (32,768-bit fingerprint)       ║    │
 │  ║      → ∩ gate_TF HLLSet (decoder vocabulary filter)      ║    │
 │  ║        → TokenLut (monotonic TF, pre-gate)               ║    │
-│  ║          → materialize (n-gram disambiguation, TF tie-break) ║    │
+│  ║          → materialize (n-gram disambiguation,           ║    |
+|  ║                              TF tie-break)               ║    │
 │  ║                                                          ║    │
 │  ║  Results:                                                ║    │
 │  ║    1. Token-LUT: encoding_id → hash_position (+ TF)      ║    │
